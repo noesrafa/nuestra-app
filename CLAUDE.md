@@ -37,14 +37,17 @@ Las tablas específicas de esta app llevan prefijo `nuestra_`. La tabla `profile
 ## Estructura del proyecto
 ```
 app/                    # Expo Router - pantallas
-  (auth)/               # Grupo de auth (login, signup)
-  (tabs)/               # Tabs principales (calendario, diario)
-  _layout.tsx           # Root layout
-components/             # Componentes reutilizables
+  _layout.tsx           # Root layout (auth guard)
+  (auth)/               # Login, signup
+  (app)/                # App autenticada (stack, sin tabs)
+    index.tsx           # Calendario mensual (HOME)
+    day/[date].tsx      # Detalle del día (ver/subir foto)
+constants/
+  theme.ts              # Colores y spacing
 lib/
-  supabase.ts           # Cliente Supabase configurado
-hooks/                  # Custom hooks
-constants/              # Colores, config
+  supabase.ts           # Cliente Supabase (expo-secure-store)
+hooks/
+  use-auth.ts           # Hook de sesión
 supabase/
   migrations/           # SQL migrations versionadas
 ```

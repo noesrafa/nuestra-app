@@ -29,8 +29,6 @@ export default function SignupScreen() {
     });
     if (error) {
       Alert.alert("Error", error.message);
-    } else {
-      Alert.alert("Listo", "Revisa tu email para confirmar tu cuenta");
     }
     setLoading(false);
   }
