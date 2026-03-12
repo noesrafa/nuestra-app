@@ -1,30 +1,40 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
   ScrollView,
   RefreshControl,
+  Alert,
+  ActivityIndicator,
+  Animated,
 } from "react-native";
 import { Image } from "expo-image";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import * as Clipboard from "expo-clipboard";
 import { useRouter, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import { supabase } from "@/lib/supabase";
-import { colors, spacing } from "@/constants/theme";
+import { colors, spacing, moods } from "@/constants/theme";
+import { useRealtimeEntries } from "@/hooks/use-realtime-entries";
+import { useCouple } from "@/hooks/use-couple";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const GRID_PADDING = spacing.md;
 const COL_GAP = 2;
 const DAY_WIDTH = (SCREEN_WIDTH - GRID_PADDING * 2 - COL_GAP * 6) / 7;
-const PHOTO_HEIGHT = DAY_WIDTH * 1.8;
+const PHOTO_HEIGHT = DAY_WIDTH * 1.5;
 const ROW_HEIGHT = PHOTO_HEIGHT + 48;
 const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
+const masksContext = require.context("../../assets/masks", false, /\.png$/);
+const MASKS = masksContext.keys().map((key: string) => masksContext(key));
 
-type EntryThumb = { date: string; photo_url: string | null };
+type EntryThumb = { date: string; photo_url: string | null; mood: string | null };
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -51,8 +61,73 @@ export default function CalendarScreen() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
-  const [entries, setEntries] = useState<Map<string, string | null>>(new Map());
+  const [entries, setEntries] = useState<Map<string, { photo_url: string | null; mood: string | null }>>(new Map());
   const [totalDays, setTotalDays] = useState(0);
+  const { couple, inviteCode: existingCode, isComplete, refetch: refetchCouple } = useCouple();
+  const coupleSheetRef = useRef<BottomSheet>(null);
+  const coupleSnapPoints = useMemo(() => ["75%"], []);
+  const [coupleMode, setCoupleMode] = useState<"home" | "join">("home");
+  const [joinCode, setJoinCode] = useState("");
+  const [myCode, setMyCode] = useState<string | null>(null);
+  const [coupleLoading, setCoupleLoading] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const copyFade = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (existingCode) setMyCode(existingCode);
+  }, [existingCode]);
+
+  async function ensureCoupleCode() {
+    if (myCode) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from("nuestra_couples")
+      .insert({ user_a: user.id })
+      .select("invite_code")
+      .single();
+    if (data) {
+      setMyCode(data.invite_code);
+      refetchCouple();
+    }
+  }
+
+  function openCoupleSheet() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    ensureCoupleCode();
+    setCoupleMode("home");
+    setJoinCode("");
+    coupleSheetRef.current?.expand();
+  }
+
+  async function joinCouple() {
+    if (joinCode.length !== 8) {
+      Alert.alert("Hmm...", "El codigo debe tener 8 caracteres");
+      return;
+    }
+    setCoupleLoading(true);
+    const { error } = await supabase.rpc("join_couple", { code: joinCode.toLowerCase() });
+    setCoupleLoading(false);
+    if (error) {
+      Alert.alert("Error", error.message);
+      return;
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    refetchCouple();
+    coupleSheetRef.current?.close();
+  }
+
+  async function copyCode() {
+    if (!myCode || codeCopied) return;
+    await Clipboard.setStringAsync(myCode);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setCodeCopied(true);
+    Animated.sequence([
+      Animated.timing(copyFade, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1800),
+      Animated.timing(copyFade, { toValue: 0, duration: 200, useNativeDriver: true }),
+    ]).start(() => setCodeCopied(false));
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -67,12 +142,12 @@ export default function CalendarScreen() {
 
     const { data } = await supabase
       .from("nuestra_entries")
-      .select("date, photo_url")
+      .select("date, photo_url, mood")
       .gte("date", startDate)
       .lte("date", endDate);
 
-    const map = new Map<string, string | null>();
-    data?.forEach((e: EntryThumb) => map.set(e.date, e.photo_url));
+    const map = new Map<string, { photo_url: string | null; mood: string | null }>();
+    data?.forEach((e: EntryThumb) => map.set(e.date, { photo_url: e.photo_url, mood: e.mood }));
     setEntries(map);
   }
 
@@ -86,6 +161,7 @@ export default function CalendarScreen() {
   }
 
   function prevMonth() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (month === 0) {
       setMonth(11);
       setYear(year - 1);
@@ -95,6 +171,7 @@ export default function CalendarScreen() {
   }
 
   function nextMonth() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (month === 11) {
       setMonth(0);
       setYear(year + 1);
@@ -131,13 +208,20 @@ export default function CalendarScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   function openLogoutSheet() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     bottomSheetRef.current?.expand();
   }
 
   async function confirmLogout() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     bottomSheetRef.current?.close();
     await supabase.auth.signOut();
   }
+
+  useRealtimeEntries(() => {
+    loadEntries();
+    loadTotalDays();
+  });
 
   async function onRefresh() {
     setRefreshing(true);
@@ -162,7 +246,16 @@ export default function CalendarScreen() {
           <Ionicons name="heart" size={16} color={colors.text} />
           <Text style={styles.counterText}>{totalDays}</Text>
         </View>
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity
+          onPress={openCoupleSheet}
+          style={styles.coupleButton}
+        >
+          <Ionicons
+            name={isComplete ? "people" : "people-outline"}
+            size={22}
+            color={isComplete ? colors.accent : colors.text}
+          />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -199,13 +292,19 @@ export default function CalendarScreen() {
 
               const dateStr = formatDate(year, month, day);
               const isToday = dateStr === todayStr;
-              const photoUrl = entries.get(dateStr);
+              const entryData = entries.get(dateStr);
+              const photoUrl = entryData?.photo_url;
+              const entryMood = entryData?.mood;
+              const moodEmoji = entryMood && moods[entryMood as keyof typeof moods]?.emoji;
 
               return (
                 <TouchableOpacity
                   key={dateStr}
                   style={styles.dayCell}
-                  onPress={() => router.push(`/(app)/day/${dateStr}`)}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push(`/(app)/day/${dateStr}`);
+                  }}
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.dayNumber, isToday && styles.dayNumberToday]}>
@@ -213,12 +312,12 @@ export default function CalendarScreen() {
                   </Text>
 
                   <Image
-                    source={photoUrl ? { uri: photoUrl } : require("@/assets/masks/mask-1.png")}
+                    source={photoUrl ? { uri: photoUrl } : MASKS[((day * 31 + month * 97 + year * 53) * 2654435761 >>> 0) % MASKS.length]}
                     style={styles.photo}
                     contentFit="contain"
                     transition={photoUrl ? 200 : 0}
                   />
-                  <Text style={styles.plusIcon}>+</Text>
+                  <Text style={styles.plusIcon}>{moodEmoji ?? "+"}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -250,6 +349,88 @@ export default function CalendarScreen() {
           </TouchableOpacity>
         </BottomSheetView>
       </BottomSheet>
+
+      {/* Couple drawer */}
+      <BottomSheet
+        ref={coupleSheetRef}
+        index={-1}
+        snapPoints={coupleSnapPoints}
+        enablePanDownToClose
+        backdropComponent={renderBackdrop}
+        backgroundStyle={styles.coupleSheetBg}
+        handleIndicatorStyle={styles.coupleSheetHandle}
+      >
+        <BottomSheetView style={styles.coupleSheetContent}>
+          {isComplete ? (
+            <>
+              <Image
+                source={require("../../assets/branding/avatar.png")}
+                style={styles.coupleAvatar}
+                contentFit="contain"
+              />
+              <Text style={styles.coupleTitle}>Vinculados</Text>
+              <Text style={styles.coupleSubtitle}>Ya estan conectados como pareja</Text>
+            </>
+          ) : coupleMode === "join" ? (
+            <>
+              <Ionicons name="link" size={32} color="#E8A0BF" />
+              <Text style={styles.coupleTitle}>Unirse</Text>
+              <Text style={styles.coupleSubtitle}>Ingresa el codigo que te compartieron</Text>
+              <TextInput
+                style={styles.coupleInput}
+                value={joinCode}
+                onChangeText={setJoinCode}
+                placeholder="8 caracteres"
+                placeholderTextColor="#B08A9A"
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={8}
+              />
+              <TouchableOpacity style={styles.couplePrimaryBtn} onPress={joinCouple} disabled={coupleLoading}>
+                {coupleLoading ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <Text style={styles.couplePrimaryText}>Vincular</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.coupleSecondaryBtn} onPress={() => setCoupleMode("home")}>
+                <Text style={styles.coupleSecondaryText}>Volver</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Image
+                source={require("../../assets/branding/avatar.png")}
+                style={styles.coupleAvatar}
+                contentFit="contain"
+              />
+              <Text style={styles.coupleTitle}>Tu codigo de pareja</Text>
+              <Text style={styles.coupleSubtitle}>Comparti este codigo para vincular calendarios</Text>
+              {myCode ? (
+                <TouchableOpacity onPress={copyCode} activeOpacity={0.7} style={styles.coupleCodeBox}>
+                  {codeCopied ? (
+                    <Animated.View style={{ opacity: copyFade, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Ionicons name="checkmark-circle" size={22} color="#6BC06B" />
+                      <Text style={[styles.coupleCode, { color: "#6BC06B", fontSize: 20 }]}>Copiado!</Text>
+                    </Animated.View>
+                  ) : (
+                    <>
+                      <Text style={styles.coupleCode}>{myCode.toUpperCase()}</Text>
+                      <Ionicons name="copy-outline" size={18} color="#B08A9A" />
+                    </>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <ActivityIndicator color="#E8A0BF" style={{ paddingVertical: 20 }} />
+              )}
+              <Text style={styles.coupleHint}>{codeCopied ? "Enviaselo a tu pareja" : "Toca para copiar"}</Text>
+              <TouchableOpacity style={styles.couplePrimaryBtn} onPress={() => setCoupleMode("join")}>
+                <Text style={styles.couplePrimaryText}>Tengo un codigo</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </BottomSheetView>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -273,8 +454,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerSpacer: {
+  coupleButton: {
     width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
   },
   counterRow: {
     flexDirection: "row",
@@ -347,7 +531,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   photo: {
-    width: DAY_WIDTH - 4,
+    width: DAY_WIDTH - 8,
     height: PHOTO_HEIGHT,
     borderRadius: 4,
   },
@@ -355,7 +539,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#B0B0B0",
     fontWeight: "400",
-    marginTop: -3,
+    marginTop: 2,
     lineHeight: 18,
   },
   sheetBackground: {
@@ -403,5 +587,100 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 16,
     fontWeight: "500",
+  },
+  coupleSheetBg: {
+    backgroundColor: "#FFF0F5",
+    borderRadius: 24,
+  },
+  coupleSheetHandle: {
+    backgroundColor: "#E8A0BF",
+    width: 40,
+  },
+  coupleSheetContent: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    alignItems: "center",
+    gap: 10,
+    paddingTop: spacing.md,
+  },
+  coupleAvatar: {
+    width: 80,
+    height: 80,
+    marginBottom: spacing.sm,
+  },
+  coupleTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#4A3040",
+    textAlign: "center",
+  },
+  coupleSubtitle: {
+    fontSize: 14,
+    color: "#B08A9A",
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: spacing.sm,
+  },
+  coupleCodeBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FFF8FA",
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: "#F5D5E5",
+    borderStyle: "dashed",
+  },
+  coupleCode: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#E8A0BF",
+    letterSpacing: 4,
+  },
+  coupleHint: {
+    fontSize: 12,
+    color: "#B08A9A",
+    marginTop: -2,
+  },
+  coupleInput: {
+    width: "100%",
+    borderWidth: 1.5,
+    borderColor: "#F5D5E5",
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.md,
+    fontSize: 20,
+    textAlign: "center",
+    color: "#4A3040",
+    letterSpacing: 3,
+    backgroundColor: "#FFF8FA",
+    fontWeight: "600",
+  },
+  couplePrimaryBtn: {
+    width: "100%",
+    backgroundColor: "#E8A0BF",
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: spacing.sm,
+  },
+  couplePrimaryText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  coupleSecondaryBtn: {
+    width: "100%",
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+    backgroundColor: "#FFF8FA",
+  },
+  coupleSecondaryText: {
+    color: "#B08A9A",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

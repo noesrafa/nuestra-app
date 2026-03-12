@@ -10,6 +10,15 @@ export const colors = {
   hasPhoto: "#E8A0BF",
 };
 
+export const moods = {
+  amazing: { emoji: "🤩", label: "Increíble" },
+  good: { emoji: "😊", label: "Bien" },
+  okay: { emoji: "😐", label: "Normal" },
+  tough: { emoji: "😔", label: "Difícil" },
+} as const;
+
+export type Mood = keyof typeof moods;
+
 export const spacing = {
   xs: 4,
   sm: 8,

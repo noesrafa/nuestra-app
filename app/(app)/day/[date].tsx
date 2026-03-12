@@ -1,12 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import * as Haptics from "expo-haptics";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
   ActivityIndicator,
   Platform,
+  ScrollView,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Image } from "expo-image";
 import { useLocalSearchParams } from "expo-router";
@@ -15,7 +19,8 @@ import * as Clipboard from "expo-clipboard";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { supabase } from "@/lib/supabase";
 import { removeBackground } from "@/lib/remove-bg";
-import { colors, spacing } from "@/constants/theme";
+import { colors, spacing, moods, type Mood } from "@/constants/theme";
+import { useRealtimeEntries } from "@/hooks/use-realtime-entries";
 
 type Entry = {
   id: string;
@@ -23,6 +28,7 @@ type Entry = {
   title: string;
   photo_url: string | null;
   notes: string | null;
+  mood: Mood | null;
 };
 
 function formatDisplayDate(dateStr: string) {
@@ -41,21 +47,89 @@ export default function DayScreen() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
+  const [title, setTitle] = useState("");
+  const [notes, setNotes] = useState("");
+  const [mood, setMood] = useState<Mood | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  useEffect(() => {
-    loadEntry();
-  }, [date]);
-
-  async function loadEntry() {
-    setLoading(true);
+  const loadEntry = useCallback(async () => {
     const { data } = await supabase
       .from("nuestra_entries")
-      .select("id, date, title, photo_url, notes")
+      .select("id, date, title, photo_url, notes, mood")
       .eq("date", date)
       .maybeSingle();
 
     setEntry(data);
+    if (data) {
+      setTitle(data.title);
+      setNotes(data.notes ?? "");
+      setMood(data.mood as Mood | null);
+    } else {
+      setTitle(formatDisplayDate(date));
+      setNotes("");
+      setMood(null);
+    }
     setLoading(false);
+  }, [date]);
+
+  useEffect(() => {
+    loadEntry();
+  }, [loadEntry]);
+
+  useRealtimeEntries(loadEntry);
+
+  function debounceSave(updates: Record<string, unknown>) {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      if (entry) {
+        await supabase
+          .from("nuestra_entries")
+          .update(updates)
+          .eq("id", entry.id);
+      }
+    }, 1000);
+  }
+
+  function onTitleChange(text: string) {
+    setTitle(text);
+    if (entry) debounceSave({ title: text });
+  }
+
+  function onNotesChange(text: string) {
+    setNotes(text);
+    if (entry) debounceSave({ notes: text });
+  }
+
+  async function onMoodSelect(selected: Mood) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newMood = mood === selected ? null : selected;
+    setMood(newMood);
+
+    if (entry) {
+      await supabase
+        .from("nuestra_entries")
+        .update({ mood: newMood })
+        .eq("id", entry.id);
+    } else {
+      // Create entry with just mood
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("nuestra_entries")
+        .insert({
+          date,
+          title: title || formatDisplayDate(date),
+          mood: newMood,
+          created_by: user.id,
+        })
+        .select("id, date, title, photo_url, notes, mood")
+        .single();
+
+      if (data) setEntry(data);
+    }
   }
 
   async function uploadBase64(base64: string) {
@@ -71,18 +145,14 @@ export default function DayScreen() {
 
       const filePath = `${user.id}/${fileName}`;
 
-      // Limitar tamaño: si el base64 pesa más de 500KB, cortar a 800px
       const sizeKb = (base64.length * 3) / 4 / 1024;
-      let uploadBytes: Uint8Array;
 
       if (sizeKb > 500) {
-        // Redimensionar usando manipulateAsync con el base64
         const resized = await manipulateAsync(
           `data:image/png;base64,${base64}`,
           [{ resize: { width: 800 } }],
           { compress: 0.8, format: SaveFormat.PNG }
         );
-        // Subir con FormData desde el archivo resized
         const formData = new FormData();
         formData.append("file", {
           uri: resized.uri,
@@ -99,7 +169,7 @@ export default function DayScreen() {
           return;
         }
       } else {
-        uploadBytes = base64ToBytes(base64);
+        const uploadBytes = base64ToBytes(base64);
 
         const { error: uploadError } = await supabase.storage
           .from("nuestra-photos")
@@ -130,8 +200,10 @@ export default function DayScreen() {
       } else {
         const { error } = await supabase.from("nuestra_entries").insert({
           date,
-          title: formatDisplayDate(date),
+          title: title || formatDisplayDate(date),
           photo_url: photoUrl,
+          mood,
+          notes: notes || null,
           created_by: user.id,
         });
         if (error) {
@@ -200,11 +272,9 @@ export default function DayScreen() {
       let uploadOptions: { contentType?: string; upsert: boolean };
 
       if (base64Data) {
-        // Upload directo con bytes (para resultados de remove-bg / clipboard)
         uploadBody = base64ToBytes(base64Data);
         uploadOptions = { contentType: "image/png", upsert: true };
       } else {
-        // Upload con FormData (para archivos locales)
         const formData = new FormData();
         formData.append("file", {
           uri: fileUri,
@@ -243,8 +313,10 @@ export default function DayScreen() {
       } else {
         const { error } = await supabase.from("nuestra_entries").insert({
           date,
-          title: formatDisplayDate(date),
+          title: title || formatDisplayDate(date),
           photo_url: photoUrl,
+          mood,
+          notes: notes || null,
           created_by: user.id,
         });
         if (error) {
@@ -263,7 +335,27 @@ export default function DayScreen() {
     }
   }
 
+  async function deleteEntry() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert("Borrar foto", "¿Seguro que querés borrar esta entrada?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Borrar",
+        style: "destructive",
+        onPress: async () => {
+          if (!entry) return;
+          await supabase.from("nuestra_entries").delete().eq("id", entry.id);
+          setEntry(null);
+          setTitle(formatDisplayDate(date));
+          setNotes("");
+          setMood(null);
+        },
+      },
+    ]);
+  }
+
   async function pickFromGallery() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permiso necesario", "Necesitamos acceso a tus fotos");
@@ -282,6 +374,7 @@ export default function DayScreen() {
   }
 
   async function pasteFromClipboard() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const hasImage = await Clipboard.hasImageAsync();
     if (!hasImage) {
       Alert.alert(
@@ -297,7 +390,6 @@ export default function DayScreen() {
       return;
     }
 
-    // Limpiar prefijo data URI si existe
     const raw = clipboardImage.data;
     const base64 = raw.includes(",") ? raw.split(",")[1] : raw;
     uploadBase64(base64);
@@ -312,69 +404,120 @@ export default function DayScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.date}>{formatDisplayDate(date)}</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={90}
+    >
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <TextInput
+          style={styles.titleInput}
+          value={title}
+          onChangeText={onTitleChange}
+          placeholder={formatDisplayDate(date)}
+          placeholderTextColor={colors.textSecondary}
+          maxLength={100}
+        />
 
-      {entry?.photo_url ? (
-        <View style={styles.photoContainer}>
-          <View style={styles.photoWrapper}>
+        {/* Mood selector */}
+        <View style={styles.moodRow}>
+          {(Object.keys(moods) as Mood[]).map((key) => (
+            <TouchableOpacity
+              key={key}
+              style={[styles.moodButton, mood === key && styles.moodButtonActive]}
+              onPress={() => onMoodSelect(key)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.moodEmoji}>{moods[key].emoji}</Text>
+              <Text
+                style={[styles.moodLabel, mood === key && styles.moodLabelActive]}
+              >
+                {moods[key].label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Photo */}
+        {entry?.photo_url ? (
+          <View style={styles.photoContainer}>
             <Image
               source={{ uri: entry.photo_url }}
               style={styles.photo}
               contentFit="contain"
               transition={300}
             />
-          </View>
-          {uploading ? (
-            <View style={styles.uploadingRow}>
-              <ActivityIndicator color={colors.accent} size="small" />
-              <Text style={styles.statusText}>{uploadStatus}</Text>
-            </View>
-          ) : (
-            <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.actionButton} onPress={pickFromGallery}>
-                <Text style={styles.actionButtonText}>Galería</Text>
-              </TouchableOpacity>
-              {Platform.OS === "ios" && (
-                <TouchableOpacity style={styles.actionButton} onPress={pasteFromClipboard}>
-                  <Text style={styles.actionButtonText}>Pegar</Text>
+            {uploading ? (
+              <View style={styles.uploadingRow}>
+                <ActivityIndicator color={colors.accent} size="small" />
+                <Text style={styles.statusText}>{uploadStatus}</Text>
+              </View>
+            ) : (
+              <View style={styles.actionRow}>
+                <TouchableOpacity style={styles.actionButton} onPress={pickFromGallery}>
+                  <Text style={styles.actionButtonText}>Galería</Text>
                 </TouchableOpacity>
-              )}
-            </View>
-          )}
-        </View>
-      ) : (
-        <View style={styles.emptyContainer}>
-          {uploading ? (
-            <View style={styles.uploadingCol}>
-              <ActivityIndicator color={colors.accent} size="large" />
-              <Text style={styles.uploadStatusText}>{uploadStatus}</Text>
-            </View>
-          ) : (
-            <>
-              <TouchableOpacity
-                style={styles.uploadArea}
-                onPress={pickFromGallery}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.uploadIcon}>+</Text>
-                <Text style={styles.uploadText}>Elegir de galería</Text>
-              </TouchableOpacity>
-
-              {Platform.OS === "ios" && (
+                {Platform.OS === "ios" && (
+                  <TouchableOpacity style={styles.actionButton} onPress={pasteFromClipboard}>
+                    <Text style={styles.actionButtonText}>Pegar</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.actionButton} onPress={deleteEntry}>
+                  <Text style={styles.actionButtonTextDanger}>Borrar</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            {uploading ? (
+              <View style={styles.uploadingCol}>
+                <ActivityIndicator color={colors.accent} size="large" />
+                <Text style={styles.uploadStatusText}>{uploadStatus}</Text>
+              </View>
+            ) : (
+              <>
                 <TouchableOpacity
-                  style={styles.pasteButton}
-                  onPress={pasteFromClipboard}
+                  style={styles.uploadArea}
+                  onPress={pickFromGallery}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.pasteButtonText}>Pegar foto sin fondo</Text>
+                  <Text style={styles.uploadIcon}>+</Text>
+                  <Text style={styles.uploadText}>Elegir de galería</Text>
                 </TouchableOpacity>
-              )}
-            </>
-          )}
-        </View>
-      )}
-    </View>
+
+                {Platform.OS === "ios" && (
+                  <TouchableOpacity
+                    style={styles.pasteButton}
+                    onPress={pasteFromClipboard}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.pasteButtonText}>Pegar foto sin fondo</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Notes */}
+        <TextInput
+          style={styles.notesInput}
+          value={notes}
+          onChangeText={onNotesChange}
+          placeholder="Agregar una nota..."
+          placeholderTextColor={colors.textSecondary}
+          multiline
+          maxLength={500}
+          textAlignVertical="top"
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -382,7 +525,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: spacing.lg,
+    paddingBottom: 40,
   },
   centered: {
     flex: 1,
@@ -390,26 +539,51 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#FFFFFF",
   },
-  date: {
+  titleInput: {
     fontSize: 20,
     fontWeight: "600",
     color: colors.text,
     textAlign: "center",
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     textTransform: "capitalize",
+    paddingVertical: spacing.xs,
+  },
+  moodRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  moodButton: {
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  moodButtonActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentLight,
+  },
+  moodEmoji: {
+    fontSize: 24,
+  },
+  moodLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  moodLabelActive: {
+    color: colors.accent,
+    fontWeight: "600",
   },
   photoContainer: {
-    flex: 1,
     alignItems: "center",
-  },
-  photoWrapper: {
-    flex: 1,
-    width: "100%",
-    maxHeight: 500,
   },
   photo: {
     width: "100%",
-    height: "100%",
+    height: 400,
   },
   actionRow: {
     flexDirection: "row",
@@ -425,6 +599,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
   },
+  actionButtonTextDanger: {
+    color: "#FF3B30",
+    fontSize: 15,
+    fontWeight: "500",
+  },
   uploadingRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -436,12 +615,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
     gap: spacing.md,
   },
   uploadArea: {
-    height: 250,
+    height: 200,
     borderRadius: 20,
     borderWidth: 2,
     borderColor: colors.border,
@@ -453,6 +630,7 @@ const styles = StyleSheet.create({
   uploadingCol: {
     alignItems: "center",
     gap: spacing.md,
+    paddingVertical: spacing.xl,
   },
   uploadStatusText: {
     fontSize: 14,
@@ -478,5 +656,13 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 15,
     fontWeight: "600",
+  },
+  notesInput: {
+    fontSize: 15,
+    color: colors.text,
+    marginTop: spacing.lg,
+    paddingVertical: spacing.md,
+    minHeight: 80,
+    lineHeight: 22,
   },
 });
