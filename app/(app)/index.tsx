@@ -21,7 +21,7 @@ const GRID_PADDING = spacing.md;
 const COL_GAP = 2;
 const DAY_WIDTH = (SCREEN_WIDTH - GRID_PADDING * 2 - COL_GAP * 6) / 7;
 const PHOTO_HEIGHT = DAY_WIDTH * 1.8;
-const ROW_HEIGHT = PHOTO_HEIGHT + 20;
+const ROW_HEIGHT = PHOTO_HEIGHT + 48;
 const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
 type EntryThumb = { date: string; photo_url: string | null };
@@ -112,6 +112,8 @@ export default function CalendarScreen() {
   );
 
   const cells: (number | null)[] = [];
+  // 4 celdas fantasma para que la primera fila empiece por el medio
+  for (let i = 0; i < 4; i++) cells.push(null);
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
@@ -163,24 +165,6 @@ export default function CalendarScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.monthNav}>
-        <TouchableOpacity onPress={prevMonth} style={styles.navButton}>
-          <Text style={styles.navText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.monthText}>{formatMonth(year, month)}</Text>
-        <TouchableOpacity onPress={nextMonth} style={styles.navButton}>
-          <Text style={styles.navText}>›</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.weekHeader}>
-        {DAYS.map((d, i) => (
-          <Text key={i} style={styles.weekDay}>
-            {d}
-          </Text>
-        ))}
-      </View>
-
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -188,6 +172,24 @@ export default function CalendarScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
         }
       >
+        <View style={styles.monthNav}>
+          <TouchableOpacity onPress={prevMonth} style={styles.navButton}>
+            <Text style={styles.navText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.monthText}>{formatMonth(year, month)}</Text>
+          <TouchableOpacity onPress={nextMonth} style={styles.navButton}>
+            <Text style={styles.navText}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.weekHeader}>
+          {DAYS.map((d, i) => (
+            <Text key={i} style={styles.weekDay}>
+              {d}
+            </Text>
+          ))}
+        </View>
+
         {rows.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.row}>
             {row.map((day, colIndex) => {
@@ -210,18 +212,13 @@ export default function CalendarScreen() {
                     {day}
                   </Text>
 
-                  {photoUrl ? (
-                    <Image
-                      source={{ uri: photoUrl }}
-                      style={styles.photo}
-                      contentFit="contain"
-                      transition={200}
-                    />
-                  ) : (
-                    <View style={styles.plusContainer}>
-                      <Text style={styles.plusIcon}>+</Text>
-                    </View>
-                  )}
+                  <Image
+                    source={photoUrl ? { uri: photoUrl } : require("@/assets/masks/mask-1.png")}
+                    style={styles.photo}
+                    contentFit="contain"
+                    transition={photoUrl ? 200 : 0}
+                  />
+                  <Text style={styles.plusIcon}>+</Text>
                 </TouchableOpacity>
               );
             })}
@@ -354,15 +351,12 @@ const styles = StyleSheet.create({
     height: PHOTO_HEIGHT,
     borderRadius: 4,
   },
-  plusContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   plusIcon: {
-    fontSize: 20,
-    color: "#D0D0D0",
-    fontWeight: "300",
+    fontSize: 16,
+    color: "#B0B0B0",
+    fontWeight: "400",
+    marginTop: -3,
+    lineHeight: 18,
   },
   sheetBackground: {
     backgroundColor: "#FFFFFF",
