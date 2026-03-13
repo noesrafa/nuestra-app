@@ -10,6 +10,34 @@ export const colors = {
   hasPhoto: "#E8A0BF",
 };
 
+export type ColorPalette = typeof colors;
+
+export const palettes: Record<"light" | "dark" | "rosa", ColorPalette> = {
+  light: colors,
+  dark: {
+    background: "#121212",
+    surface: "#1E1E1E",
+    accent: "#E8A0BF",
+    accentLight: "#3D2A35",
+    text: "#F0F0F0",
+    textSecondary: "#888888",
+    border: "#333333",
+    today: "#E8A0BF",
+    hasPhoto: "#E8A0BF",
+  },
+  rosa: {
+    background: "#FFF0F5",
+    surface: "#FFF8FA",
+    accent: "#FF69B4",
+    accentLight: "#FFD6E8",
+    text: "#4A2040",
+    textSecondary: "#B07090",
+    border: "#FFD6E8",
+    today: "#FF69B4",
+    hasPhoto: "#FF69B4",
+  },
+};
+
 export const moods = {
   amazing: { emoji: "🤩", label: "Increíble" },
   good: { emoji: "😊", label: "Bien" },

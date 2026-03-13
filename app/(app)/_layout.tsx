@@ -1,12 +1,14 @@
 import { Stack } from "expo-router";
-import { colors } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function AppLayout() {
+  const { colors } = useTheme();
+
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: "#FFFFFF" },
+        contentStyle: { backgroundColor: colors.surface },
       }}
     >
       <Stack.Screen name="index" />
@@ -17,7 +19,7 @@ export default function AppLayout() {
           headerTitle: "",
           headerBackTitle: "Volver",
           headerTintColor: colors.text,
-          headerStyle: { backgroundColor: "#FFFFFF" },
+          headerStyle: { backgroundColor: colors.surface },
           headerShadowVisible: false,
         }}
       />

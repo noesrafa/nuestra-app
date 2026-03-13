@@ -6,6 +6,8 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import "react-native-reanimated";
 
 import { useAuth } from "@/hooks/use-auth";
+import { ThemeProvider } from "@/contexts/theme-context";
+import { useTheme } from "@/hooks/use-theme";
 
 function useProtectedRoute(isAuthenticated: boolean, loading: boolean) {
   const segments = useSegments();
@@ -24,6 +26,11 @@ function useProtectedRoute(isAuthenticated: boolean, loading: boolean) {
   }, [isAuthenticated, loading, segments]);
 }
 
+function ThemedStatusBar() {
+  const { isDark } = useTheme();
+  return <StatusBar style={isDark ? "light" : "dark"} />;
+}
+
 export default function RootLayout() {
   const { session, loading } = useAuth();
 
@@ -31,13 +38,15 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(app)" />
-        </Stack>
-        <StatusBar style="dark" />
-      </BottomSheetModalProvider>
+      <ThemeProvider>
+        <BottomSheetModalProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(app)" />
+          </Stack>
+          <ThemedStatusBar />
+        </BottomSheetModalProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }

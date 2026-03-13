@@ -20,9 +20,14 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import { supabase } from "@/lib/supabase";
-import { colors, spacing, moods } from "@/constants/theme";
+import { spacing, moods } from "@/constants/theme";
 import { useRealtimeEntries } from "@/hooks/use-realtime-entries";
 import { useCouple } from "@/hooks/use-couple";
+import { useAuth } from "@/hooks/use-auth";
+import { useProfile } from "@/hooks/use-profile";
+import { useTheme } from "@/hooks/use-theme";
+import { LinearGradient } from "expo-linear-gradient";
+import type { ThemeOption } from "@/contexts/theme-context";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const GRID_PADDING = spacing.md;
@@ -56,8 +61,18 @@ function formatDate(year: number, month: number, day: number) {
   return `${year}-${m}-${d}`;
 }
 
+const THEME_OPTIONS: { key: ThemeOption; label: string; icon: string }[] = [
+  { key: "auto", label: "Auto", icon: "phone-portrait-outline" },
+  { key: "light", label: "Light", icon: "sunny-outline" },
+  { key: "dark", label: "Dark", icon: "moon-outline" },
+  { key: "rosa", label: "Rosa", icon: "heart-outline" },
+];
+
 export default function CalendarScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { displayName, avatarUrl } = useProfile(user?.id);
+  const { theme, setTheme, colors, isDark } = useTheme();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -203,18 +218,23 @@ export default function CalendarScreen() {
   const lastRow = rows[rows.length - 1];
   while (lastRow.length < 7) lastRow.push(null);
 
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => [220], []);
+  const settingsSheetRef = useRef<BottomSheet>(null);
+  const settingsSnapPoints = useMemo(() => ["55%"], []);
   const [refreshing, setRefreshing] = useState(false);
 
-  function openLogoutSheet() {
+  function openSettingsSheet() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    bottomSheetRef.current?.expand();
+    settingsSheetRef.current?.expand();
+  }
+
+  function selectTheme(value: ThemeOption) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setTheme(value);
   }
 
   async function confirmLogout() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    bottomSheetRef.current?.close();
+    settingsSheetRef.current?.close();
     await supabase.auth.signOut();
   }
 
@@ -237,14 +257,14 @@ export default function CalendarScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={openLogoutSheet} style={styles.logoutButton}>
-          <Feather name="x" size={22} color={colors.text} />
+        <TouchableOpacity onPress={openSettingsSheet} style={styles.settingsButton}>
+          <Feather name="more-horizontal" size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.counterRow}>
-          <Ionicons name="heart" size={16} color={colors.text} />
-          <Text style={styles.counterText}>{totalDays}</Text>
+          <Image source={require("../../assets/icons-3d/heart.png")} style={{ width: 20, height: 20 }} contentFit="contain" />
+          <Text style={[styles.counterText, { color: colors.text }]}>{totalDays}</Text>
         </View>
         <TouchableOpacity
           onPress={openCoupleSheet}
@@ -267,17 +287,17 @@ export default function CalendarScreen() {
       >
         <View style={styles.monthNav}>
           <TouchableOpacity onPress={prevMonth} style={styles.navButton}>
-            <Text style={styles.navText}>‹</Text>
+            <Text style={[styles.navText, { color: colors.text }]}>‹</Text>
           </TouchableOpacity>
-          <Text style={styles.monthText}>{formatMonth(year, month)}</Text>
+          <Text style={[styles.monthText, { color: colors.text }]}>{formatMonth(year, month)}</Text>
           <TouchableOpacity onPress={nextMonth} style={styles.navButton}>
-            <Text style={styles.navText}>›</Text>
+            <Text style={[styles.navText, { color: colors.text }]}>›</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.weekHeader}>
           {DAYS.map((d, i) => (
-            <Text key={i} style={styles.weekDay}>
+            <Text key={i} style={[styles.weekDay, { color: colors.textSecondary }]}>
               {d}
             </Text>
           ))}
@@ -307,7 +327,7 @@ export default function CalendarScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.dayNumber, isToday && styles.dayNumberToday]}>
+                  <Text style={[styles.dayNumber, { color: colors.textSecondary }, isToday && [styles.dayNumberToday, { color: colors.accent }]]}>
                     {day}
                   </Text>
 
@@ -317,7 +337,7 @@ export default function CalendarScreen() {
                     contentFit="contain"
                     transition={photoUrl ? 200 : 0}
                   />
-                  <Text style={styles.plusIcon}>{moodEmoji ?? "+"}</Text>
+                  <Text style={[styles.plusIcon, { color: colors.textSecondary }]}>{moodEmoji ?? "+"}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -326,27 +346,76 @@ export default function CalendarScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
+      {/* Settings drawer */}
       <BottomSheet
-        ref={bottomSheetRef}
+        ref={settingsSheetRef}
         index={-1}
-        snapPoints={snapPoints}
+        snapPoints={settingsSnapPoints}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.sheetHandle}
+        backgroundStyle={[styles.sheetBg, { backgroundColor: colors.surface }]}
+        handleIndicatorStyle={[styles.sheetHandle, { backgroundColor: colors.border }]}
       >
-        <BottomSheetView style={styles.sheetContent}>
-          <Text style={styles.sheetTitle}>Cerrar sesión</Text>
-          <Text style={styles.sheetMessage}>¿Seguro que quieres salir?</Text>
-          <TouchableOpacity style={styles.sheetButtonDanger} onPress={confirmLogout}>
-            <Text style={styles.sheetButtonDangerText}>Cerrar sesión</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.sheetButtonCancel}
-            onPress={() => bottomSheetRef.current?.close()}
-          >
-            <Text style={styles.sheetButtonCancelText}>Cancelar</Text>
-          </TouchableOpacity>
+        <BottomSheetView style={styles.settingsContent}>
+          {/* Account card */}
+          <View style={[styles.settingsCard, { backgroundColor: colors.background }]}>
+            <View style={styles.settingsAccount}>
+              {avatarUrl ? (
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={styles.settingsAvatar}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={[styles.settingsAvatarPlaceholder, { backgroundColor: colors.accentLight }]}>
+                  <Ionicons name="person" size={28} color={colors.accent} />
+                </View>
+              )}
+              <View style={styles.settingsAccountInfo}>
+                <Text style={[styles.settingsName, { color: colors.text }]}>{displayName ?? "Sin nombre"}</Text>
+                <Text style={[styles.settingsEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            </View>
+          </View>
+
+          {/* Theme card */}
+          <View style={[styles.settingsCard, { backgroundColor: colors.background }]}>
+            <Text style={[styles.settingsLabel, { color: colors.textSecondary }]}>APARIENCIA</Text>
+            <View style={[styles.themeRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {THEME_OPTIONS.map((opt, i) => {
+                const isActive = theme === opt.key;
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[
+                      styles.themeButton,
+                      isActive && { backgroundColor: colors.accent },
+                    ]}
+                    onPress={() => selectTheme(opt.key)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name={opt.icon as keyof typeof Ionicons.glyphMap}
+                      size={16}
+                      color={isActive ? "#FFFFFF" : colors.textSecondary}
+                    />
+                    <Text style={[styles.themeButtonText, { color: isActive ? "#FFFFFF" : colors.textSecondary }]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Logout card */}
+          <View style={[styles.settingsCard, { backgroundColor: colors.background }]}>
+            <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout} activeOpacity={0.6}>
+              <Ionicons name="log-out-outline" size={18} color="#FF3B30" />
+              <Text style={styles.logoutText}>Cerrar sesión</Text>
+            </TouchableOpacity>
+          </View>
         </BottomSheetView>
       </BottomSheet>
 
@@ -357,8 +426,8 @@ export default function CalendarScreen() {
         snapPoints={coupleSnapPoints}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
-        backgroundStyle={styles.coupleSheetBg}
-        handleIndicatorStyle={styles.coupleSheetHandle}
+        backgroundStyle={[styles.coupleSheetBg, { backgroundColor: isDark ? colors.surface : "#FFF0F5" }]}
+        handleIndicatorStyle={[styles.coupleSheetHandle, { backgroundColor: colors.accent }]}
       >
         <BottomSheetView style={styles.coupleSheetContent}>
           {isComplete ? (
@@ -368,33 +437,43 @@ export default function CalendarScreen() {
                 style={styles.coupleAvatar}
                 contentFit="contain"
               />
-              <Text style={styles.coupleTitle}>Vinculados</Text>
-              <Text style={styles.coupleSubtitle}>Ya estan conectados como pareja</Text>
+              <Text style={[styles.coupleTitle, { color: colors.text }]}>Vinculados</Text>
+              <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>Ya estan conectados como pareja</Text>
             </>
           ) : coupleMode === "join" ? (
             <>
-              <Ionicons name="link" size={32} color="#E8A0BF" />
-              <Text style={styles.coupleTitle}>Unirse</Text>
-              <Text style={styles.coupleSubtitle}>Ingresa el codigo que te compartieron</Text>
+              <Ionicons name="link" size={32} color={colors.accent} />
+              <Text style={[styles.coupleTitle, { color: colors.text }]}>Unirse</Text>
+              <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>Ingresa el codigo que te compartieron</Text>
               <TextInput
-                style={styles.coupleInput}
+                style={[styles.coupleInput, { color: colors.text, borderColor: colors.accentLight, backgroundColor: colors.surface }]}
                 value={joinCode}
                 onChangeText={setJoinCode}
                 placeholder="8 caracteres"
-                placeholderTextColor="#B08A9A"
+                placeholderTextColor={colors.textSecondary}
                 autoCapitalize="none"
                 autoCorrect={false}
                 maxLength={8}
               />
-              <TouchableOpacity style={styles.couplePrimaryBtn} onPress={joinCouple} disabled={coupleLoading}>
-                {coupleLoading ? (
-                  <ActivityIndicator color="#FFF" size="small" />
-                ) : (
-                  <Text style={styles.couplePrimaryText}>Vincular</Text>
-                )}
+              <TouchableOpacity onPress={joinCouple} disabled={coupleLoading} activeOpacity={0.8} style={styles.couplePrimaryBtn}>
+                <LinearGradient
+                  colors={["#F7A9BB", "#F36581"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.couplePrimaryGradient}
+                >
+                  {coupleLoading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <View style={styles.couplePrimaryInner}>
+                      <Image source={require("../../assets/icons-3d/heart.png")} style={{ width: 22, height: 22 }} contentFit="contain" />
+                      <Text style={styles.couplePrimaryText}>Vincular</Text>
+                    </View>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.coupleSecondaryBtn} onPress={() => setCoupleMode("home")}>
-                <Text style={styles.coupleSecondaryText}>Volver</Text>
+              <TouchableOpacity style={[styles.coupleSecondaryBtn, { backgroundColor: colors.surface }]} onPress={() => setCoupleMode("home")}>
+                <Text style={[styles.coupleSecondaryText, { color: colors.textSecondary }]}>Volver</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -404,10 +483,10 @@ export default function CalendarScreen() {
                 style={styles.coupleAvatar}
                 contentFit="contain"
               />
-              <Text style={styles.coupleTitle}>Tu codigo de pareja</Text>
-              <Text style={styles.coupleSubtitle}>Comparti este codigo para vincular calendarios</Text>
+              <Text style={[styles.coupleTitle, { color: colors.text }]}>Tu codigo de pareja</Text>
+              <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>Comparti este codigo para vincular calendarios</Text>
               {myCode ? (
-                <TouchableOpacity onPress={copyCode} activeOpacity={0.7} style={styles.coupleCodeBox}>
+                <TouchableOpacity onPress={copyCode} activeOpacity={0.7} style={[styles.coupleCodeBox, { backgroundColor: colors.surface, borderColor: colors.accentLight }]}>
                   {codeCopied ? (
                     <Animated.View style={{ opacity: copyFade, flexDirection: "row", alignItems: "center", gap: 8 }}>
                       <Ionicons name="checkmark-circle" size={22} color="#6BC06B" />
@@ -415,17 +494,27 @@ export default function CalendarScreen() {
                     </Animated.View>
                   ) : (
                     <>
-                      <Text style={styles.coupleCode}>{myCode.toUpperCase()}</Text>
-                      <Ionicons name="copy-outline" size={18} color="#B08A9A" />
+                      <Text style={[styles.coupleCode, { color: colors.accent }]}>{myCode.toUpperCase()}</Text>
+                      <Ionicons name="copy-outline" size={18} color={colors.textSecondary} />
                     </>
                   )}
                 </TouchableOpacity>
               ) : (
-                <ActivityIndicator color="#E8A0BF" style={{ paddingVertical: 20 }} />
+                <ActivityIndicator color={colors.accent} style={{ paddingVertical: 20 }} />
               )}
-              <Text style={styles.coupleHint}>{codeCopied ? "Enviaselo a tu pareja" : "Toca para copiar"}</Text>
-              <TouchableOpacity style={styles.couplePrimaryBtn} onPress={() => setCoupleMode("join")}>
-                <Text style={styles.couplePrimaryText}>Tengo un codigo</Text>
+              <Text style={[styles.coupleHint, { color: colors.textSecondary }]}>{codeCopied ? "Enviaselo a tu pareja" : "Toca para copiar"}</Text>
+              <TouchableOpacity onPress={() => setCoupleMode("join")} activeOpacity={0.8} style={styles.couplePrimaryBtn}>
+                <LinearGradient
+                  colors={["#F7A9BB", "#F36581"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.couplePrimaryGradient}
+                >
+                  <View style={styles.couplePrimaryInner}>
+                    <Image source={require("../../assets/icons-3d/heart.png")} style={{ width: 22, height: 22 }} contentFit="contain" />
+                    <Text style={styles.couplePrimaryText}>Tengo un codigo</Text>
+                  </View>
+                </LinearGradient>
               </TouchableOpacity>
             </>
           )}
@@ -438,7 +527,6 @@ export default function CalendarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
   },
   header: {
     flexDirection: "row",
@@ -448,7 +536,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     marginBottom: spacing.md,
   },
-  logoutButton: {
+  settingsButton: {
     width: 36,
     height: 36,
     alignItems: "center",
@@ -468,7 +556,6 @@ const styles = StyleSheet.create({
   counterText: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.text,
   },
   monthNav: {
     flexDirection: "row",
@@ -485,13 +572,11 @@ const styles = StyleSheet.create({
   },
   navText: {
     fontSize: 24,
-    color: colors.text,
     fontWeight: "300",
   },
   monthText: {
     fontSize: 16,
     fontWeight: "600",
-    color: colors.text,
   },
   weekHeader: {
     flexDirection: "row",
@@ -503,7 +588,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 12,
     fontWeight: "600",
-    color: colors.textSecondary,
     marginRight: COL_GAP,
   },
   scroll: {
@@ -523,11 +607,9 @@ const styles = StyleSheet.create({
   dayNumber: {
     fontSize: 11,
     fontWeight: "500",
-    color: colors.textSecondary,
     marginBottom: 2,
   },
   dayNumberToday: {
-    color: colors.accent,
     fontWeight: "700",
   },
   photo: {
@@ -537,63 +619,95 @@ const styles = StyleSheet.create({
   },
   plusIcon: {
     fontSize: 16,
-    color: "#B0B0B0",
     fontWeight: "400",
     marginTop: 2,
     lineHeight: 18,
   },
-  sheetBackground: {
-    backgroundColor: "#FFFFFF",
+  sheetBg: {
     borderRadius: 24,
   },
   sheetHandle: {
-    backgroundColor: "#D0D0D0",
     width: 40,
   },
-  sheetContent: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+  settingsContent: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xl,
     gap: 12,
   },
-  sheetTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.text,
-    textAlign: "center",
-  },
-  sheetMessage: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  sheetButtonDanger: {
-    backgroundColor: colors.text,
-    borderRadius: 12,
+  settingsCard: {
+    borderRadius: 14,
+    paddingHorizontal: 16,
     paddingVertical: 14,
-    alignItems: "center",
+    gap: 12,
   },
-  sheetButtonDangerText: {
-    color: "#FFFFFF",
-    fontSize: 16,
+  settingsAccount: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  settingsAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  settingsAvatarPlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  settingsAccountInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  settingsName: {
+    fontSize: 18,
     fontWeight: "600",
   },
-  sheetButtonCancel: {
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
+  settingsEmail: {
+    fontSize: 13,
   },
-  sheetButtonCancelText: {
-    color: colors.textSecondary,
+  settingsLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    marginBottom: -4,
+  },
+  themeRow: {
+    flexDirection: "row",
+    borderRadius: 10,
+    padding: 3,
+    borderWidth: 1,
+  },
+  themeButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  themeButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+  },
+  logoutText: {
+    color: "#FF3B30",
     fontSize: 16,
     fontWeight: "500",
   },
   coupleSheetBg: {
-    backgroundColor: "#FFF0F5",
     borderRadius: 24,
   },
   coupleSheetHandle: {
-    backgroundColor: "#E8A0BF",
     width: 40,
   },
   coupleSheetContent: {
@@ -611,12 +725,10 @@ const styles = StyleSheet.create({
   coupleTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#4A3040",
     textAlign: "center",
   },
   coupleSubtitle: {
     fontSize: 14,
-    color: "#B08A9A",
     textAlign: "center",
     lineHeight: 20,
     marginBottom: spacing.sm,
@@ -625,46 +737,49 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#FFF8FA",
     paddingVertical: 16,
     paddingHorizontal: 28,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: "#F5D5E5",
     borderStyle: "dashed",
   },
   coupleCode: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#E8A0BF",
     letterSpacing: 4,
   },
   coupleHint: {
     fontSize: 12,
-    color: "#B08A9A",
     marginTop: -2,
   },
   coupleInput: {
     width: "100%",
     borderWidth: 1.5,
-    borderColor: "#F5D5E5",
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: spacing.md,
     fontSize: 20,
     textAlign: "center",
-    color: "#4A3040",
     letterSpacing: 3,
-    backgroundColor: "#FFF8FA",
     fontWeight: "600",
   },
   couplePrimaryBtn: {
     width: "100%",
-    backgroundColor: "#E8A0BF",
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: "center",
     marginTop: spacing.sm,
+    borderRadius: 28,
+    overflow: "hidden",
+  },
+  couplePrimaryGradient: {
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  couplePrimaryInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   couplePrimaryText: {
     color: "#FFFFFF",
@@ -673,13 +788,11 @@ const styles = StyleSheet.create({
   },
   coupleSecondaryBtn: {
     width: "100%",
-    borderRadius: 16,
+    borderRadius: 28,
     paddingVertical: 14,
     alignItems: "center",
-    backgroundColor: "#FFF8FA",
   },
   coupleSecondaryText: {
-    color: "#B08A9A",
     fontSize: 15,
     fontWeight: "600",
   },

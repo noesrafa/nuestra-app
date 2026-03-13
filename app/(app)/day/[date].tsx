@@ -13,14 +13,17 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as Clipboard from "expo-clipboard";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { supabase } from "@/lib/supabase";
 import { removeBackground } from "@/lib/remove-bg";
-import { colors, spacing, moods, type Mood } from "@/constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { spacing, moods, type Mood } from "@/constants/theme";
 import { useRealtimeEntries } from "@/hooks/use-realtime-entries";
+import { useTheme } from "@/hooks/use-theme";
 
 type Entry = {
   id: string;
@@ -43,6 +46,7 @@ function formatDisplayDate(dateStr: string) {
 
 export default function DayScreen() {
   const { date } = useLocalSearchParams<{ date: string }>();
+  const { colors } = useTheme();
   const [entry, setEntry] = useState<Entry | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -397,7 +401,7 @@ export default function DayScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
+      <View style={[styles.centered, { backgroundColor: colors.surface }]}>
         <ActivityIndicator color={colors.accent} />
       </View>
     );
@@ -405,7 +409,7 @@ export default function DayScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.surface }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={90}
     >
@@ -416,7 +420,7 @@ export default function DayScreen() {
         showsVerticalScrollIndicator={false}
       >
         <TextInput
-          style={styles.titleInput}
+          style={[styles.titleInput, { color: colors.text }]}
           value={title}
           onChangeText={onTitleChange}
           placeholder={formatDisplayDate(date)}
@@ -429,13 +433,13 @@ export default function DayScreen() {
           {(Object.keys(moods) as Mood[]).map((key) => (
             <TouchableOpacity
               key={key}
-              style={[styles.moodButton, mood === key && styles.moodButtonActive]}
+              style={[styles.moodButton, mood === key && { borderColor: colors.accent, backgroundColor: colors.accentLight }]}
               onPress={() => onMoodSelect(key)}
               activeOpacity={0.7}
             >
               <Text style={styles.moodEmoji}>{moods[key].emoji}</Text>
               <Text
-                style={[styles.moodLabel, mood === key && styles.moodLabelActive]}
+                style={[styles.moodLabel, { color: colors.textSecondary }, mood === key && { color: colors.accent, fontWeight: "600" }]}
               >
                 {moods[key].label}
               </Text>
@@ -455,16 +459,16 @@ export default function DayScreen() {
             {uploading ? (
               <View style={styles.uploadingRow}>
                 <ActivityIndicator color={colors.accent} size="small" />
-                <Text style={styles.statusText}>{uploadStatus}</Text>
+                <Text style={[styles.statusText, { color: colors.textSecondary }]}>{uploadStatus}</Text>
               </View>
             ) : (
               <View style={styles.actionRow}>
                 <TouchableOpacity style={styles.actionButton} onPress={pickFromGallery}>
-                  <Text style={styles.actionButtonText}>Galería</Text>
+                  <Text style={[styles.actionButtonText, { color: colors.accent }]}>Galería</Text>
                 </TouchableOpacity>
                 {Platform.OS === "ios" && (
                   <TouchableOpacity style={styles.actionButton} onPress={pasteFromClipboard}>
-                    <Text style={styles.actionButtonText}>Pegar</Text>
+                    <Text style={[styles.actionButtonText, { color: colors.accent }]}>Pegar</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity style={styles.actionButton} onPress={deleteEntry}>
@@ -483,21 +487,29 @@ export default function DayScreen() {
             ) : (
               <>
                 <TouchableOpacity
-                  style={styles.uploadArea}
+                  style={[styles.uploadArea, { borderColor: colors.border, backgroundColor: colors.background }]}
                   onPress={pickFromGallery}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.uploadIcon}>+</Text>
-                  <Text style={styles.uploadText}>Elegir de galería</Text>
+                  <Text style={[styles.uploadIcon, { color: colors.accent }]}>+</Text>
+                  <Text style={[styles.uploadText, { color: colors.textSecondary }]}>Elegir de galería</Text>
                 </TouchableOpacity>
 
                 {Platform.OS === "ios" && (
                   <TouchableOpacity
-                    style={styles.pasteButton}
                     onPress={pasteFromClipboard}
-                    activeOpacity={0.7}
+                    activeOpacity={0.8}
+                    style={styles.pasteButtonWrap}
                   >
-                    <Text style={styles.pasteButtonText}>Pegar foto sin fondo</Text>
+                    <LinearGradient
+                      colors={["#F7A9BB", "#F36581"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={styles.pasteButtonGradient}
+                    >
+                      <Image source={require("../../../assets/icons-3d/heart.png")} style={{ width: 20, height: 20 }} contentFit="contain" />
+                      <Text style={styles.pasteButtonText}>Pegar foto sin fondo</Text>
+                    </LinearGradient>
                   </TouchableOpacity>
                 )}
               </>
@@ -507,7 +519,7 @@ export default function DayScreen() {
 
         {/* Notes */}
         <TextInput
-          style={styles.notesInput}
+          style={[styles.notesInput, { color: colors.text }]}
           value={notes}
           onChangeText={onNotesChange}
           placeholder="Agregar una nota..."
@@ -524,7 +536,6 @@ export default function DayScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
   },
   scroll: {
     flex: 1,
@@ -537,12 +548,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
   },
   titleInput: {
     fontSize: 20,
     fontWeight: "600",
-    color: colors.text,
     textAlign: "center",
     marginBottom: spacing.md,
     textTransform: "capitalize",
@@ -562,21 +571,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "transparent",
   },
-  moodButtonActive: {
-    borderColor: colors.accent,
-    backgroundColor: colors.accentLight,
-  },
   moodEmoji: {
     fontSize: 24,
   },
   moodLabel: {
     fontSize: 11,
-    color: colors.textSecondary,
     marginTop: 2,
-  },
-  moodLabelActive: {
-    color: colors.accent,
-    fontWeight: "600",
   },
   photoContainer: {
     alignItems: "center",
@@ -595,7 +595,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   actionButtonText: {
-    color: colors.accent,
     fontSize: 15,
     fontWeight: "500",
   },
@@ -611,7 +610,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   statusText: {
-    color: colors.textSecondary,
     fontSize: 14,
   },
   emptyContainer: {
@@ -621,11 +619,9 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.border,
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FAFAFA",
   },
   uploadingCol: {
     alignItems: "center",
@@ -634,32 +630,35 @@ const styles = StyleSheet.create({
   },
   uploadStatusText: {
     fontSize: 14,
-    color: colors.textSecondary,
   },
   uploadIcon: {
     fontSize: 48,
-    color: colors.accent,
     fontWeight: "300",
     marginBottom: spacing.sm,
   },
   uploadText: {
     fontSize: 16,
-    color: colors.textSecondary,
   },
-  pasteButton: {
+  pasteButtonWrap: {
+    borderRadius: 28,
+    overflow: "hidden",
+  },
+  pasteButtonGradient: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-    backgroundColor: colors.accentLight,
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 28,
   },
   pasteButtonText: {
-    color: colors.accent,
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   notesInput: {
     fontSize: 15,
-    color: colors.text,
     marginTop: spacing.lg,
     paddingVertical: spacing.md,
     minHeight: 80,
