@@ -23,6 +23,7 @@ import { removeBackground } from "@/lib/remove-bg";
 import { LinearGradient } from "expo-linear-gradient";
 import { spacing, moods, type Mood } from "@/constants/theme";
 import { useRealtimeEntries } from "@/hooks/use-realtime-entries";
+import { useCouple } from "@/hooks/use-couple";
 import { useTheme } from "@/hooks/use-theme";
 
 type Entry = {
@@ -47,6 +48,7 @@ function formatDisplayDate(dateStr: string) {
 export default function DayScreen() {
   const { date } = useLocalSearchParams<{ date: string }>();
   const { colors } = useTheme();
+  const { coupleId } = useCouple();
   const [entry, setEntry] = useState<Entry | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -62,6 +64,13 @@ export default function DayScreen() {
       .select("id, date, title, photo_url, notes, mood")
       .eq("date", date)
       .maybeSingle();
+
+    if (data && data.photo_url && !data.photo_url.startsWith("http")) {
+      const { data: signed } = await supabase.storage
+        .from("nuestra-photos")
+        .createSignedUrl(data.photo_url, 3600);
+      if (signed?.signedUrl) data.photo_url = signed.signedUrl;
+    }
 
     setEntry(data);
     if (data) {
@@ -124,6 +133,7 @@ export default function DayScreen() {
       const { data } = await supabase
         .from("nuestra_entries")
         .insert({
+          couple_id: coupleId,
           date,
           title: title || formatDisplayDate(date),
           mood: newMood,
@@ -185,17 +195,11 @@ export default function DayScreen() {
         }
       }
 
-      const { data: urlData } = supabase.storage
-        .from("nuestra-photos")
-        .getPublicUrl(filePath);
-
-      const photoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-
       setUploadStatus("Guardando...");
       if (entry) {
         const { error } = await supabase
           .from("nuestra_entries")
-          .update({ photo_url: photoUrl })
+          .update({ photo_url: filePath })
           .eq("id", entry.id);
         if (error) {
           Alert.alert("Error", error.message);
@@ -203,9 +207,10 @@ export default function DayScreen() {
         }
       } else {
         const { error } = await supabase.from("nuestra_entries").insert({
+          couple_id: coupleId,
           date,
           title: title || formatDisplayDate(date),
-          photo_url: photoUrl,
+          photo_url: filePath,
           mood,
           notes: notes || null,
           created_by: user.id,
@@ -298,17 +303,11 @@ export default function DayScreen() {
         return;
       }
 
-      const { data: urlData } = supabase.storage
-        .from("nuestra-photos")
-        .getPublicUrl(filePath);
-
-      const photoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-
       setUploadStatus("Guardando...");
       if (entry) {
         const { error } = await supabase
           .from("nuestra_entries")
-          .update({ photo_url: photoUrl })
+          .update({ photo_url: filePath })
           .eq("id", entry.id);
         if (error) {
           Alert.alert("Error", error.message);
@@ -316,9 +315,10 @@ export default function DayScreen() {
         }
       } else {
         const { error } = await supabase.from("nuestra_entries").insert({
+          couple_id: coupleId,
           date,
           title: title || formatDisplayDate(date),
-          photo_url: photoUrl,
+          photo_url: filePath,
           mood,
           notes: notes || null,
           created_by: user.id,

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { AppState } from "react-native";
 import { supabase } from "@/lib/supabase";
 
 type Couple = {
@@ -33,6 +34,30 @@ export function useCouple() {
 
   useEffect(() => {
     fetch();
+
+    // Realtime for couple changes (works when user CAN see the change)
+    const channel = supabase
+      .channel("couple-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "nuestra_couples",
+        },
+        () => fetch()
+      )
+      .subscribe();
+
+    // Poll when app comes back to foreground (catches unlink where RLS hides the event)
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") fetch();
+    });
+
+    return () => {
+      supabase.removeChannel(channel);
+      subscription.remove();
+    };
   }, [fetch]);
 
   return {

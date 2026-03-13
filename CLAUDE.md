@@ -1,6 +1,9 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Nuestra - App de parejas
 
-## Qué es
 App para parejas con calendario donde registran fotos juntos y llevan un diario de salidas.
 
 ## Stack
@@ -46,8 +49,14 @@ constants/
   theme.ts              # Colores y spacing
 lib/
   supabase.ts           # Cliente Supabase (expo-secure-store)
+contexts/
+  theme-context.tsx     # ThemeProvider (light/dark/rosa palettes)
 hooks/
   use-auth.ts           # Hook de sesión
+  use-couple.ts         # Couple data + invite code
+  use-realtime-entries.ts # Supabase Realtime subscription for entries
+  use-theme.ts          # Theme hook (colors, isDark)
+  use-profile.ts        # User profile data
 supabase/
   migrations/           # SQL migrations versionadas
 ```
@@ -65,7 +74,22 @@ bun install          # instalar deps
 bun start            # expo start
 bun run ios          # expo ios
 bun run android      # expo android
+bun run lint         # eslint (expo lint)
 ```
+
+## Arquitectura clave
+
+### Auth guard
+`app/_layout.tsx` usa `useProtectedRoute()` que redirige basado en segmentos de Expo Router: sin sesión va a `(auth)/login`, con sesión va a `(app)/`. Toda pantalla dentro de `(app)/` requiere autenticación.
+
+### Theme system
+`ThemeProvider` en `contexts/theme-context.tsx` wrappea toda la app. Los componentes acceden a colores via `useTheme()` que retorna `{ colors, isDark, palette, setPalette }`. Hay 3 paletas definidas en `constants/theme.ts`: light, dark, rosa.
+
+### Realtime
+`useRealtimeEntries` se suscribe a cambios en `nuestra_entries` via Supabase Realtime y ejecuta un callback para refetch. Se usa en la pantalla Home para sync entre dispositivos de la pareja.
+
+### Background removal
+`lib/remove-bg.ts` usa remove.bg API (key en `EXPO_PUBLIC_REMOVE_BG_API_KEY`). Si no hay key, retorna la imagen original sin error.
 
 ## Convenciones de código
 - Archivos en kebab-case: `my-component.tsx`

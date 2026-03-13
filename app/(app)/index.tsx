@@ -83,33 +83,12 @@ export default function CalendarScreen() {
   const coupleSnapPoints = useMemo(() => ["75%"], []);
   const [coupleMode, setCoupleMode] = useState<"home" | "join">("home");
   const [joinCode, setJoinCode] = useState("");
-  const [myCode, setMyCode] = useState<string | null>(null);
   const [coupleLoading, setCoupleLoading] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const copyFade = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (existingCode) setMyCode(existingCode);
-  }, [existingCode]);
-
-  async function ensureCoupleCode() {
-    if (myCode) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase
-      .from("nuestra_couples")
-      .insert({ user_a: user.id })
-      .select("invite_code")
-      .single();
-    if (data) {
-      setMyCode(data.invite_code);
-      refetchCouple();
-    }
-  }
-
   function openCoupleSheet() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    ensureCoupleCode();
     setCoupleMode("home");
     setJoinCode("");
     coupleSheetRef.current?.expand();
@@ -133,8 +112,8 @@ export default function CalendarScreen() {
   }
 
   async function copyCode() {
-    if (!myCode || codeCopied) return;
-    await Clipboard.setStringAsync(myCode);
+    if (!existingCode || codeCopied) return;
+    await Clipboard.setStringAsync(existingCode);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setCodeCopied(true);
     Animated.sequence([
@@ -162,7 +141,23 @@ export default function CalendarScreen() {
       .lte("date", endDate);
 
     const map = new Map<string, { photo_url: string | null; mood: string | null }>();
-    data?.forEach((e: EntryThumb) => map.set(e.date, { photo_url: e.photo_url, mood: e.mood }));
+    if (data) {
+      // Generate signed URLs for entries with photo paths
+      const paths = data.filter((e: EntryThumb) => e.photo_url && !e.photo_url.startsWith("http")).map((e: EntryThumb) => e.photo_url!);
+      const signedMap = new Map<string, string>();
+      if (paths.length > 0) {
+        const { data: signed } = await supabase.storage
+          .from("nuestra-photos")
+          .createSignedUrls(paths, 3600);
+        signed?.forEach((s) => { if (s.signedUrl) signedMap.set(s.path!, s.signedUrl); });
+      }
+      data.forEach((e: EntryThumb) => {
+        const url = e.photo_url && !e.photo_url.startsWith("http")
+          ? signedMap.get(e.photo_url) ?? null
+          : e.photo_url;
+        map.set(e.date, { photo_url: url, mood: e.mood });
+      });
+    }
     setEntries(map);
   }
 
@@ -439,6 +434,34 @@ export default function CalendarScreen() {
               />
               <Text style={[styles.coupleTitle, { color: colors.text }]}>Vinculados</Text>
               <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>Ya estan conectados como pareja</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  Alert.alert(
+                    "Desvincular",
+                    "¿Seguro que quieres desvincular tu pareja? Las entries se mantienen pero ya no se sincronizarán.",
+                    [
+                      { text: "Cancelar", style: "cancel" },
+                      {
+                        text: "Desvincular",
+                        style: "destructive",
+                        onPress: async () => {
+                          const { error } = await supabase.rpc("unlink_couple");
+                          if (error) {
+                            Alert.alert("Error", error.message);
+                            return;
+                          }
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                          refetchCouple();
+                          coupleSheetRef.current?.close();
+                        },
+                      },
+                    ]
+                  );
+                }}
+                style={[styles.coupleSecondaryBtn, { backgroundColor: colors.surface }]}
+              >
+                <Text style={{ color: "#FF3B30", fontSize: 15, fontWeight: "600" }}>Desvincular</Text>
+              </TouchableOpacity>
             </>
           ) : coupleMode === "join" ? (
             <>
@@ -485,7 +508,7 @@ export default function CalendarScreen() {
               />
               <Text style={[styles.coupleTitle, { color: colors.text }]}>Tu codigo de pareja</Text>
               <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>Comparti este codigo para vincular calendarios</Text>
-              {myCode ? (
+              {existingCode ? (
                 <TouchableOpacity onPress={copyCode} activeOpacity={0.7} style={[styles.coupleCodeBox, { backgroundColor: colors.surface, borderColor: colors.accentLight }]}>
                   {codeCopied ? (
                     <Animated.View style={{ opacity: copyFade, flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -494,7 +517,7 @@ export default function CalendarScreen() {
                     </Animated.View>
                   ) : (
                     <>
-                      <Text style={[styles.coupleCode, { color: colors.accent }]}>{myCode.toUpperCase()}</Text>
+                      <Text style={[styles.coupleCode, { color: colors.accent }]}>{existingCode.toUpperCase()}</Text>
                       <Ionicons name="copy-outline" size={18} color={colors.textSecondary} />
                     </>
                   )}
