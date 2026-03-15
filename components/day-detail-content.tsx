@@ -9,8 +9,6 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  ScrollView,
-  KeyboardAvoidingView,
   Pressable,
 } from "react-native";
 import { Image } from "expo-image";
@@ -20,15 +18,12 @@ import Animated, {
   withSequence,
   withSpring,
 } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as Clipboard from "expo-clipboard";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { supabase } from "@/lib/supabase";
 import { LinearGradient } from "expo-linear-gradient";
 import { spacing } from "@/constants/theme";
-import { useRealtimeEntries } from "@/hooks/use-realtime-entries";
 import { useCouple } from "@/hooks/use-couple";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -51,15 +46,19 @@ function formatDisplayDate(dateStr: string) {
   });
 }
 
-export default function DayScreen() {
-  const { date } = useLocalSearchParams<{ date: string }>();
+type Props = {
+  date: string;
+  onChanged?: () => void;
+};
+
+export function DayDetailContent({ date, onChanged }: Props) {
   const { colors } = useTheme();
   const { coupleId } = useCouple();
   const [entry, setEntry] = useState<Entry | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(formatDisplayDate(date));
   const [notes, setNotes] = useState("");
   const [hearts, setHearts] = useState(0);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -97,10 +96,9 @@ export default function DayScreen() {
   }, [date]);
 
   useEffect(() => {
+    setLoading(true);
     loadEntry();
   }, [loadEntry]);
-
-  useRealtimeEntries(loadEntry);
 
   function debounceSave(updates: Record<string, unknown>) {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -110,6 +108,7 @@ export default function DayScreen() {
           .from("nuestra_entries")
           .update(updates)
           .eq("id", entry.id);
+        onChanged?.();
       }
     }, 1000);
   }
@@ -141,6 +140,7 @@ export default function DayScreen() {
         .from("nuestra_entries")
         .update({ hearts: newHearts })
         .eq("id", entry.id);
+      onChanged?.();
     }
   }
 
@@ -207,6 +207,7 @@ export default function DayScreen() {
       }
 
       loadEntry();
+      onChanged?.();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Error desconocido";
       Alert.alert("Error", message);
@@ -230,6 +231,7 @@ export default function DayScreen() {
           setTitle(formatDisplayDate(date));
           setNotes("");
           setHearts(0);
+          onChanged?.();
         },
       },
     ]);
@@ -278,150 +280,127 @@ export default function DayScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.surface }]}>
+      <View style={styles.centered}>
         <ActivityIndicator color={colors.accent} />
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.surface }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={90}
-    >
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <TextInput
-          style={[styles.titleInput, { color: colors.text }]}
-          value={title}
-          onChangeText={onTitleChange}
-          placeholder={formatDisplayDate(date)}
-          placeholderTextColor={colors.textSecondary}
-          maxLength={100}
-        />
+    <>
+      <TextInput
+        style={[styles.titleInput, { color: colors.text }]}
+        value={title}
+        onChangeText={onTitleChange}
+        placeholder={formatDisplayDate(date)}
+        placeholderTextColor={colors.textSecondary}
+        maxLength={100}
+      />
 
-        {/* Photo */}
-        {entry?.photo_url ? (
-          <View style={styles.photoContainer}>
-            <Pressable onPress={onHeartTap} style={styles.photoPress}>
-              <Animated.View style={[styles.photoWrap, animatedPhotoStyle]}>
-                <Image
-                  source={{ uri: entry.photo_url }}
-                  style={styles.photo}
-                  contentFit="contain"
-                  transition={300}
-                />
-              </Animated.View>
-            </Pressable>
+      {entry?.photo_url ? (
+        <View style={styles.photoContainer}>
+          <Pressable onPress={onHeartTap} style={styles.photoPress}>
+            <Animated.View style={[styles.photoWrap, animatedPhotoStyle]}>
+              <Image
+                source={{ uri: entry.photo_url }}
+                style={styles.photo}
+                contentFit="contain"
+                transition={300}
+              />
+            </Animated.View>
+          </Pressable>
 
-            {hearts > 0 && (
-              <View style={styles.heartsRow}>
-                <Image
-                  source={require("../../../assets/icons-3d/heart.png")}
-                  style={{ width: 18, height: 18 }}
-                  contentFit="contain"
-                />
-                <Text style={[styles.heartsCount, { color: colors.accent }]}>{hearts}</Text>
-              </View>
-            )}
+          {hearts > 0 && (
+            <View style={styles.heartsRow}>
+              <Image
+                source={require("../assets/icons-3d/heart.png")}
+                style={{ width: 18, height: 18 }}
+                contentFit="contain"
+              />
+              <Text style={[styles.heartsCount, { color: colors.accent }]}>{hearts}</Text>
+            </View>
+          )}
 
-            {uploading ? (
-              <View style={styles.uploadingRow}>
-                <ActivityIndicator color={colors.accent} size="small" />
-                <Text style={[styles.statusText, { color: colors.textSecondary }]}>{uploadStatus}</Text>
-              </View>
-            ) : (
-              <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.actionButton} onPress={pickFromGallery}>
-                  <Text style={[styles.actionButtonText, { color: colors.accent }]}>Galería</Text>
+          {uploading ? (
+            <View style={styles.uploadingRow}>
+              <ActivityIndicator color={colors.accent} size="small" />
+              <Text style={[styles.statusText, { color: colors.textSecondary }]}>{uploadStatus}</Text>
+            </View>
+          ) : (
+            <View style={styles.actionRow}>
+              <TouchableOpacity style={styles.actionButton} onPress={pickFromGallery}>
+                <Text style={[styles.actionButtonText, { color: colors.accent }]}>Galería</Text>
+              </TouchableOpacity>
+              {Platform.OS === "ios" && (
+                <TouchableOpacity style={styles.actionButton} onPress={pasteFromClipboard}>
+                  <Text style={[styles.actionButtonText, { color: colors.accent }]}>Pegar</Text>
                 </TouchableOpacity>
-                {Platform.OS === "ios" && (
-                  <TouchableOpacity style={styles.actionButton} onPress={pasteFromClipboard}>
-                    <Text style={[styles.actionButtonText, { color: colors.accent }]}>Pegar</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity style={styles.actionButton} onPress={deleteEntry}>
-                  <Text style={styles.actionButtonTextDanger}>Borrar</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        ) : (
-          <View style={styles.emptyContainer}>
-            {uploading ? (
-              <View style={styles.uploadingCol}>
-                <ActivityIndicator color={colors.accent} size="large" />
-                <Text style={styles.uploadStatusText}>{uploadStatus}</Text>
-              </View>
-            ) : (
-              <>
+              )}
+              <TouchableOpacity style={styles.actionButton} onPress={deleteEntry}>
+                <Text style={styles.actionButtonTextDanger}>Borrar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      ) : (
+        <View style={styles.emptyContainer}>
+          {uploading ? (
+            <View style={styles.uploadingCol}>
+              <ActivityIndicator color={colors.accent} size="large" />
+              <Text style={styles.uploadStatusText}>{uploadStatus}</Text>
+            </View>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={[styles.uploadArea, { borderColor: colors.border, backgroundColor: colors.background }]}
+                onPress={pickFromGallery}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.uploadIcon, { color: colors.accent }]}>+</Text>
+                <Text style={[styles.uploadText, { color: colors.textSecondary }]}>Elegir de galería</Text>
+              </TouchableOpacity>
+
+              {Platform.OS === "ios" && (
                 <TouchableOpacity
-                  style={[styles.uploadArea, { borderColor: colors.border, backgroundColor: colors.background }]}
-                  onPress={pickFromGallery}
-                  activeOpacity={0.7}
+                  onPress={pasteFromClipboard}
+                  activeOpacity={0.8}
+                  style={styles.pasteButtonWrap}
                 >
-                  <Text style={[styles.uploadIcon, { color: colors.accent }]}>+</Text>
-                  <Text style={[styles.uploadText, { color: colors.textSecondary }]}>Elegir de galería</Text>
-                </TouchableOpacity>
-
-                {Platform.OS === "ios" && (
-                  <TouchableOpacity
-                    onPress={pasteFromClipboard}
-                    activeOpacity={0.8}
-                    style={styles.pasteButtonWrap}
+                  <LinearGradient
+                    colors={["#F7A9BB", "#F36581"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.pasteButtonGradient}
                   >
-                    <LinearGradient
-                      colors={["#F7A9BB", "#F36581"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 0, y: 1 }}
-                      style={styles.pasteButtonGradient}
-                    >
-                      <Image source={require("../../../assets/icons-3d/heart.png")} style={{ width: 20, height: 20 }} contentFit="contain" />
-                      <Text style={styles.pasteButtonText}>Pegar foto</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-          </View>
-        )}
+                    <Image source={require("../assets/icons-3d/heart.png")} style={{ width: 20, height: 20 }} contentFit="contain" />
+                    <Text style={styles.pasteButtonText}>Pegar foto</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+        </View>
+      )}
 
-        {/* Notes */}
-        <TextInput
-          style={[styles.notesInput, { color: colors.text }]}
-          value={notes}
-          onChangeText={onNotesChange}
-          placeholder="Agregar una nota..."
-          placeholderTextColor={colors.textSecondary}
-          multiline
-          maxLength={500}
-          textAlignVertical="top"
-        />
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <TextInput
+        style={[styles.notesInput, { color: colors.text }]}
+        value={notes}
+        onChangeText={onNotesChange}
+        placeholder="Agregar una nota..."
+        placeholderTextColor={colors.textSecondary}
+        multiline
+        maxLength={500}
+        textAlignVertical="top"
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: 40,
-  },
   centered: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: spacing.xl,
   },
   titleInput: {
     fontSize: 20,

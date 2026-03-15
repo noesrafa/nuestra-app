@@ -3,7 +3,7 @@ import { useColorScheme } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { palettes, type ColorPalette } from "@/constants/theme";
 
-export type ThemeOption = "auto" | "light" | "dark" | "rosa";
+export type ThemeOption = "auto" | "dark" | "rosa";
 
 type ThemeContextType = {
   theme: ThemeOption;
@@ -33,11 +33,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const resolved = useMemo(() => {
     if (theme === "auto") {
-      const key = systemScheme === "dark" ? "dark" : "light";
+      const key = systemScheme === "dark" ? "dark" : "rosa";
       return { colors: palettes[key], isDark: key === "dark" };
-    }
-    if (theme === "rosa") {
-      return { colors: palettes.rosa, isDark: false };
     }
     return { colors: palettes[theme], isDark: theme === "dark" };
   }, [theme, systemScheme]);

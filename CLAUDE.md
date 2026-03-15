@@ -88,9 +88,6 @@ bun run lint         # eslint (expo lint)
 ### Realtime
 `useRealtimeEntries` se suscribe a cambios en `nuestra_entries` via Supabase Realtime y ejecuta un callback para refetch. Se usa en la pantalla Home para sync entre dispositivos de la pareja.
 
-### Background removal
-`lib/remove-bg.ts` usa remove.bg API (key en `EXPO_PUBLIC_REMOVE_BG_API_KEY`). Si no hay key, retorna la imagen original sin error.
-
 ## Convenciones de código
 - Archivos en kebab-case: `my-component.tsx`
 - Componentes en PascalCase: `export function MyComponent()`

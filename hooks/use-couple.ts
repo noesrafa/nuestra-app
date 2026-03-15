@@ -9,8 +9,11 @@ type Couple = {
   invite_code: string;
 };
 
+type MemberProfile = { avatar_url: string | null };
+
 export function useCouple() {
   const [couple, setCouple] = useState<Couple | null>(null);
+  const [avatars, setAvatars] = useState<[string | null, string | null]>([null, null]);
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
@@ -29,6 +32,19 @@ export function useCouple() {
       .maybeSingle();
 
     setCouple(data);
+
+    if (data) {
+      const ids = [data.user_a, data.user_b].filter(Boolean) as string[];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, avatar_url")
+        .in("id", ids);
+      const profileMap = new Map(profiles?.map((p: MemberProfile & { id: string }) => [p.id, p.avatar_url]) ?? []);
+      // Current user first, partner second
+      const partnerId = data.user_a === user.id ? data.user_b : data.user_a;
+      setAvatars([profileMap.get(user.id) ?? null, partnerId ? profileMap.get(partnerId) ?? null : null]);
+    }
+
     setLoading(false);
   }, []);
 
@@ -65,6 +81,7 @@ export function useCouple() {
     coupleId: couple?.id ?? null,
     inviteCode: couple?.invite_code ?? null,
     isComplete: couple ? couple.user_b !== null : false,
+    avatars,
     loading,
     refetch: fetch,
   };

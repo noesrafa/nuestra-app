@@ -12,19 +12,7 @@ export const colors = {
 
 export type ColorPalette = typeof colors;
 
-export const palettes: Record<"light" | "dark" | "rosa", ColorPalette> = {
-  light: colors,
-  dark: {
-    background: "#121212",
-    surface: "#1E1E1E",
-    accent: "#E8A0BF",
-    accentLight: "#3D2A35",
-    text: "#F0F0F0",
-    textSecondary: "#888888",
-    border: "#333333",
-    today: "#E8A0BF",
-    hasPhoto: "#E8A0BF",
-  },
+export const palettes: Record<"rosa" | "dark", ColorPalette> = {
   rosa: {
     background: "#FFF0F5",
     surface: "#FFF8FA",
@@ -36,16 +24,18 @@ export const palettes: Record<"light" | "dark" | "rosa", ColorPalette> = {
     today: "#FF69B4",
     hasPhoto: "#FF69B4",
   },
+  dark: {
+    background: "#121212",
+    surface: "#1E1E1E",
+    accent: "#E8A0BF",
+    accentLight: "#3D2A35",
+    text: "#F0F0F0",
+    textSecondary: "#888888",
+    border: "#333333",
+    today: "#E8A0BF",
+    hasPhoto: "#E8A0BF",
+  },
 };
-
-export const moods = {
-  amazing: { emoji: "🤩", label: "Increíble" },
-  good: { emoji: "😊", label: "Bien" },
-  okay: { emoji: "😐", label: "Normal" },
-  tough: { emoji: "😔", label: "Difícil" },
-} as const;
-
-export type Mood = keyof typeof moods;
 
 export const spacing = {
   xs: 4,
