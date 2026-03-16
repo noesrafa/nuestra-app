@@ -44,7 +44,7 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
 
   function openWriteLetter() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push(`/(app)/letter/${date}`);
+    router.push(`/(app)/(calendar)/letter/${date}`);
   }
 
   if (loading) {

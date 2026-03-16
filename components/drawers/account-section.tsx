@@ -8,7 +8,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { CardRow } from "@/components/ui/card-row";
 
 type Props = {
-  onClose: () => void;
+  onClose?: () => void;
 };
 
 export function AccountSection({ onClose }: Props) {
@@ -18,7 +18,7 @@ export function AccountSection({ onClose }: Props) {
 
   async function confirmLogout() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    onClose();
+    onClose?.();
     await supabase.auth.signOut();
   }
 

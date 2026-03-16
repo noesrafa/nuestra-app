@@ -8,7 +8,7 @@ import { useSpaceActions } from "@/hooks/use-space-actions";
 import { CardRow } from "@/components/ui/card-row";
 
 type Props = {
-  onClose: () => void;
+  onClose?: () => void;
   onMutate?: () => void;
 };
 

@@ -75,14 +75,14 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 24,
-    paddingBottom: 24,
+    paddingBottom: 120,
     alignItems: "center",
     gap: 10,
     paddingTop: 16,
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 120,
     paddingTop: 16,
   },
 });

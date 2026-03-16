@@ -1,11 +1,11 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   ScrollView,
   RefreshControl,
   StyleSheet,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { supabase } from "@/lib/supabase";
@@ -23,10 +23,10 @@ import { DayDetailContent } from "@/components/day-detail-content";
 import { SpaceStatusBanner } from "@/components/space-status-banner";
 import { CalendarGrid } from "@/components/calendar/calendar-grid";
 import { CalendarHeader } from "@/components/calendar/calendar-header";
-import { CoupleDrawerContent } from "@/components/drawers/couple-drawer-content";
 import { ShareDrawerContent } from "@/components/drawers/share-drawer-content";
 
 export default function CalendarScreen() {
+  const { openDate } = useLocalSearchParams<{ openDate?: string }>();
   const { user } = useAuth();
   const { avatarUrl } = useProfile(user?.id);
   const { colors } = useTheme();
@@ -47,7 +47,6 @@ export default function CalendarScreen() {
 
   const shareDrawerRef = useRef<BottomSheet>(null);
   const dayDrawerRef = useRef<BottomSheet>(null);
-  const coupleDrawerRef = useRef<BottomSheet>(null);
 
   const spaceReadOnly = isPaused || isPendingDelete;
 
@@ -100,7 +99,19 @@ export default function CalendarScreen() {
     }, [year, month, user?.id])
   );
 
-  // Realtime: one subscription per table, all in the parent
+  // Handle deep link from letters tab
+  useEffect(() => {
+    if (!openDate) return;
+    const d = new Date(openDate + "T12:00:00");
+    setYear(d.getFullYear());
+    setMonth(d.getMonth());
+    // Small delay to let the calendar render the right month
+    setTimeout(() => {
+      setSelectedDate(openDate);
+      dayDrawerRef.current?.expand();
+    }, 300);
+  }, [openDate]);
+
   useRealtime(DB.TABLES.ENTRIES, () => {
     loadEntries();
     loadTotalDays();
@@ -127,14 +138,12 @@ export default function CalendarScreen() {
     shareDrawerRef.current?.expand();
   }
 
-  function openCoupleDrawer() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    coupleDrawerRef.current?.expand();
-  }
-
   function openDayDrawer(date: string) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (!isComplete) { openCoupleDrawer(); return; }
+    if (!isComplete) {
+      router.navigate("/(app)/(nosotros)");
+      return;
+    }
     setSelectedDate(date);
     dayDrawerRef.current?.expand();
   }
@@ -153,7 +162,7 @@ export default function CalendarScreen() {
         avatars={avatars}
         avatarUrl={avatarUrl}
         onSharePress={openShareDrawer}
-        onCouplePress={openCoupleDrawer}
+        onCouplePress={() => router.navigate("/(app)/(nosotros)")}
       />
 
       {(isPaused || isPendingDelete) && (
@@ -185,13 +194,6 @@ export default function CalendarScreen() {
 
       <Drawer ref={dayDrawerRef} scrollable>
         {selectedDate ? <DayDetailContent date={selectedDate} onChanged={onRefresh} readOnly={spaceReadOnly} /> : null}
-      </Drawer>
-
-      <Drawer ref={coupleDrawerRef} scrollable>
-        <CoupleDrawerContent
-          onClose={() => coupleDrawerRef.current?.close()}
-          onMutate={() => { refetchCouple(); refetchSpace(); loadEntries(); loadTotalDays(); }}
-        />
       </Drawer>
     </SafeAreaView>
   );

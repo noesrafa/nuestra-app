@@ -33,7 +33,7 @@ export default function RootLayout() {
     const inAppGroup = segments[0] === "(app)";
 
     if (isAuthenticated && !inAppGroup) {
-      router.replace("/(app)");
+      router.replace("/(app)/(calendar)" as any);
     } else if (!isAuthenticated && !inAuthGroup) {
       router.replace("/(auth)/login");
     }
