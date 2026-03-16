@@ -8,11 +8,11 @@ type Props = {
   children: ReactNode;
   scrollable?: boolean;
   accentHandle?: boolean;
-  pinkBackground?: boolean;
+  accentBackground?: boolean;
 };
 
 export const Drawer = forwardRef<BottomSheet, Props>(
-  function Drawer({ snapPoints, children, scrollable, accentHandle, pinkBackground }, ref) {
+  function Drawer({ snapPoints, children, scrollable, accentHandle, accentBackground }, ref) {
     const { colors, isDark } = useTheme();
 
     const renderBackdrop = useCallback(
@@ -22,7 +22,7 @@ export const Drawer = forwardRef<BottomSheet, Props>(
       []
     );
 
-    const bgColor = pinkBackground && !isDark ? "#FFF0F5" : colors.surface;
+    const bgColor = accentBackground && !isDark ? colors.accentLight : colors.surface;
     const handleColor = accentHandle ? colors.accent : colors.border;
     const dynamic = !snapPoints;
 

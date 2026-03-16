@@ -49,9 +49,10 @@ function formatDisplayDate(dateStr: string) {
 type Props = {
   date: string;
   onChanged?: () => void;
+  readOnly?: boolean;
 };
 
-export function DayDetailContent({ date, onChanged }: Props) {
+export function DayDetailContent({ date, onChanged, readOnly }: Props) {
   const { colors } = useTheme();
   const { coupleId } = useCouple();
   const [entry, setEntry] = useState<Entry | null>(null);
@@ -295,11 +296,12 @@ export function DayDetailContent({ date, onChanged }: Props) {
         placeholder={formatDisplayDate(date)}
         placeholderTextColor={colors.textSecondary}
         maxLength={100}
+        editable={!readOnly}
       />
 
       {entry?.photo_url ? (
         <View style={styles.photoContainer}>
-          <Pressable onPress={onHeartTap} style={styles.photoPress}>
+          <Pressable onPress={readOnly ? undefined : onHeartTap} style={styles.photoPress}>
             <Animated.View style={[styles.photoWrap, animatedPhotoStyle]}>
               <Image
                 source={{ uri: entry.photo_url }}
@@ -321,7 +323,7 @@ export function DayDetailContent({ date, onChanged }: Props) {
             </View>
           )}
 
-          {uploading ? (
+          {readOnly ? null : uploading ? (
             <View style={styles.uploadingRow}>
               <ActivityIndicator color={colors.accent} size="small" />
               <Text style={[styles.statusText, { color: colors.textSecondary }]}>{uploadStatus}</Text>
@@ -341,6 +343,12 @@ export function DayDetailContent({ date, onChanged }: Props) {
               </TouchableOpacity>
             </View>
           )}
+        </View>
+      ) : readOnly ? (
+        <View style={styles.emptyContainer}>
+          <Text style={[styles.uploadText, { color: colors.textSecondary, textAlign: "center", paddingVertical: spacing.xl }]}>
+            Sin foto para este día
+          </Text>
         </View>
       ) : (
         <View style={styles.emptyContainer}>
@@ -367,7 +375,7 @@ export function DayDetailContent({ date, onChanged }: Props) {
                   style={styles.pasteButtonWrap}
                 >
                   <LinearGradient
-                    colors={["#F7A9BB", "#F36581"]}
+                    colors={[colors.gradientStart, colors.gradientEnd]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 0, y: 1 }}
                     style={styles.pasteButtonGradient}
@@ -386,11 +394,12 @@ export function DayDetailContent({ date, onChanged }: Props) {
         style={[styles.notesInput, { color: colors.text }]}
         value={notes}
         onChangeText={onNotesChange}
-        placeholder="Agregar una nota..."
+        placeholder={readOnly ? "" : "Agregar una nota..."}
         placeholderTextColor={colors.textSecondary}
         multiline
         maxLength={500}
         textAlignVertical="top"
+        editable={!readOnly}
       />
     </>
   );

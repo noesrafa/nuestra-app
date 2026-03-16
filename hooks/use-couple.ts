@@ -65,7 +65,7 @@ export function useCouple() {
       )
       .subscribe();
 
-    // Poll when app comes back to foreground (catches unlink where RLS hides the event)
+    // Poll when app comes back to foreground (catches changes hidden by RLS)
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") fetch();
     });

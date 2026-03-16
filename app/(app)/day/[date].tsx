@@ -376,7 +376,7 @@ export default function DayScreen() {
                     style={styles.pasteButtonWrap}
                   >
                     <LinearGradient
-                      colors={["#F7A9BB", "#F36581"]}
+                      colors={[colors.gradientStart, colors.gradientEnd]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 0, y: 1 }}
                       style={styles.pasteButtonGradient}

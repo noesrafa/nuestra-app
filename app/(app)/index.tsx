@@ -22,12 +22,14 @@ import { supabase } from "@/lib/supabase";
 import { spacing } from "@/constants/theme";
 import { useRealtimeEntries } from "@/hooks/use-realtime-entries";
 import { useCouple } from "@/hooks/use-couple";
+import { useSpace } from "@/hooks/use-space";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { useTheme } from "@/hooks/use-theme";
 import { LinearGradient } from "expo-linear-gradient";
 import { Drawer } from "@/components/drawer";
 import { DayDetailContent } from "@/components/day-detail-content";
+import { SpaceStatusBanner } from "@/components/space-status-banner";
 import type { ThemeOption } from "@/contexts/theme-context";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -64,7 +66,7 @@ function formatDate(year: number, month: number, day: number) {
 
 const THEME_OPTIONS: { key: ThemeOption; label: string; icon: string }[] = [
   { key: "auto", label: "Auto", icon: "phone-portrait-outline" },
-  { key: "rosa", label: "Rosa", icon: "heart-outline" },
+  { key: "rosa", label: "Claro", icon: "sunny-outline" },
   { key: "dark", label: "Dark", icon: "moon-outline" },
 ];
 
@@ -77,7 +79,17 @@ export default function CalendarScreen() {
   const [month, setMonth] = useState(today.getMonth());
   const [entries, setEntries] = useState<Map<string, { photo_url: string | null }>>(new Map());
   const [totalDays, setTotalDays] = useState(0);
-  const { couple, inviteCode: existingCode, isComplete, avatars, refetch: refetchCouple } = useCouple();
+  const { inviteCode: existingCode, isComplete, avatars, refetch: refetchCouple } = useCouple();
+  const {
+    isActive,
+    isPaused,
+    isPendingDelete,
+    pausedBy,
+    deleteRequestedBy,
+    deleteRequestedAt,
+    canFinalizeDelete,
+    refetch: refetchSpace,
+  } = useSpace();
 
   const shareDrawerRef = useRef<BottomSheet>(null);
   const dayDrawerRef = useRef<BottomSheet>(null);
@@ -88,6 +100,8 @@ export default function CalendarScreen() {
   const [joinCode, setJoinCode] = useState("");
   const [coupleLoading, setCoupleLoading] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [spaceLoading, setSpaceLoading] = useState(false);
+  const spaceReadOnly = isPaused || isPendingDelete;
 
 
   function openShareDrawer() {
@@ -104,6 +118,10 @@ export default function CalendarScreen() {
 
   function openDayDrawer(date: string) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!isComplete) {
+      openCoupleDrawer();
+      return;
+    }
     setSelectedDate(date);
     dayDrawerRef.current?.expand();
   }
@@ -131,6 +149,100 @@ export default function CalendarScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setCodeCopied(true);
     setTimeout(() => setCodeCopied(false), 2000);
+  }
+
+  async function handlePauseSpace() {
+    setSpaceLoading(true);
+    const { error } = await supabase.rpc("pause_space");
+    setSpaceLoading(false);
+    if (error) { Alert.alert("Error", error.message); return; }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    refetchSpace();
+  }
+
+  async function handleUnpauseSpace() {
+    setSpaceLoading(true);
+    const { error } = await supabase.rpc("unpause_space");
+    setSpaceLoading(false);
+    if (error) { Alert.alert("Error", error.message); return; }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    refetchSpace();
+  }
+
+  async function handleRequestDelete() {
+    Alert.alert(
+      "Eliminar todo",
+      "Esto iniciará la eliminación del espacio. Tu pareja tendrá 24h para confirmar o cancelar.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Solicitar eliminación",
+          style: "destructive",
+          onPress: async () => {
+            setSpaceLoading(true);
+            const { error } = await supabase.rpc("request_delete_space");
+            setSpaceLoading(false);
+            if (error) { Alert.alert("Error", error.message); return; }
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            refetchSpace();
+          },
+        },
+      ]
+    );
+  }
+
+  async function handleCancelDelete() {
+    setSpaceLoading(true);
+    const { error } = await supabase.rpc("cancel_delete_space");
+    setSpaceLoading(false);
+    if (error) { Alert.alert("Error", error.message); return; }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    refetchSpace();
+  }
+
+  async function deleteSpaceWithPhotos() {
+    Alert.alert(
+      "Eliminar definitivamente",
+      "Se borrarán todas las fotos y entries. Esta acción no se puede deshacer.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar todo",
+          style: "destructive",
+          onPress: async () => {
+            setSpaceLoading(true);
+            try {
+              // 1. List entries with photos
+              const { data: entriesWithPhotos } = await supabase
+                .from("nuestra_entries")
+                .select("photo_url")
+                .not("photo_url", "is", null);
+
+              // 2. Delete photos from storage
+              if (entriesWithPhotos && entriesWithPhotos.length > 0) {
+                const paths = entriesWithPhotos
+                  .map((e) => e.photo_url)
+                  .filter((p): p is string => !!p && !p.startsWith("http"));
+                if (paths.length > 0) {
+                  await supabase.storage.from("nuestra-photos").remove(paths);
+                }
+              }
+
+              // 3. Confirm delete (DB handles entries + unlink)
+              const { error } = await supabase.rpc("confirm_delete_space");
+              if (error) { Alert.alert("Error", error.message); return; }
+
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              refetchCouple();
+              refetchSpace();
+              coupleDrawerRef.current?.close();
+            } finally {
+              setSpaceLoading(false);
+            }
+          },
+        },
+      ]
+    );
   }
 
   useFocusEffect(
@@ -239,6 +351,7 @@ export default function CalendarScreen() {
   useRealtimeEntries(() => {
     loadEntries();
     loadTotalDays();
+    refetchSpace();
   });
 
   async function onRefresh() {
@@ -254,7 +367,7 @@ export default function CalendarScreen() {
           <Ionicons name="share" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.counterRow}>
-          <Image source={require("../../assets/icons-3d/heart.png")} style={{ width: 20, height: 20 }} contentFit="contain" />
+          <Ionicons name="heart" size={18} color={colors.text} />
           <Text style={[styles.counterText, { color: colors.text }]}>{totalDays}</Text>
         </View>
         <TouchableOpacity
@@ -265,12 +378,12 @@ export default function CalendarScreen() {
             <View style={styles.avatarStack}>
               <Image
                 source={{ uri: avatars[0] }}
-                style={[styles.avatarSmall, styles.avatarLeft]}
+                style={[styles.avatarSmall, styles.avatarLeft, { borderColor: colors.surface }]}
                 contentFit="cover"
               />
               <Image
                 source={{ uri: avatars[1] }}
-                style={[styles.avatarSmall, styles.avatarRight]}
+                style={[styles.avatarSmall, styles.avatarRight, { borderColor: colors.surface }]}
                 contentFit="cover"
               />
               <View style={styles.avatarHeart}>
@@ -291,6 +404,10 @@ export default function CalendarScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {(isPaused || isPendingDelete) && (
+        <SpaceStatusBanner status={isPaused ? "paused" : "pending_delete"} deleteRequestedAt={deleteRequestedAt} />
+      )}
 
       <ScrollView
         style={styles.scroll}
@@ -346,7 +463,7 @@ export default function CalendarScreen() {
                     contentFit="contain"
                     transition={photoUrl ? 200 : 0}
                   />
-                  <Text style={[styles.plusIcon, { color: colors.textSecondary }]}>+</Text>
+                  {isActive && <Text style={[styles.plusIcon, { color: colors.textSecondary }]}>+</Text>}
                 </TouchableOpacity>
               );
             })}
@@ -364,171 +481,237 @@ export default function CalendarScreen() {
 
       {/* Day detail drawer */}
       <Drawer ref={dayDrawerRef} snapPoints={["85%"]} scrollable>
-        {selectedDate ? <DayDetailContent date={selectedDate} onChanged={onRefresh} /> : null}
+        {selectedDate ? <DayDetailContent date={selectedDate} onChanged={onRefresh} readOnly={spaceReadOnly} /> : null}
       </Drawer>
 
       {/* Couple drawer */}
-      <Drawer ref={coupleDrawerRef}>
+      <Drawer ref={coupleDrawerRef} snapPoints={["75%"]} scrollable>
         {isComplete ? (
           <>
-            <View style={styles.avatarStackLarge}>
-              <Image
-                source={{ uri: avatars[0] ?? undefined }}
-                style={[styles.avatarLarge, styles.avatarLargeLeft]}
-                contentFit="cover"
-              />
-              <Image
-                source={{ uri: avatars[1] ?? undefined }}
-                style={[styles.avatarLarge, styles.avatarLargeRight]}
-                contentFit="cover"
-              />
-              <View style={styles.avatarHeartLarge}>
-                <Image source={require("../../assets/icons-3d/heart.png")} style={{ width: 24, height: 24 }} contentFit="contain" />
+            <View style={[styles.avatarCard, { backgroundColor: colors.background }]}>
+              <View style={styles.avatarStackLarge}>
+                <Image
+                  source={{ uri: avatars[0] ?? undefined }}
+                  style={[styles.avatarLarge, styles.avatarLargeLeft, { borderColor: colors.background }]}
+                  contentFit="cover"
+                />
+                <Image
+                  source={{ uri: avatars[1] ?? undefined }}
+                  style={[styles.avatarLarge, styles.avatarLargeRight, { borderColor: colors.background }]}
+                  contentFit="cover"
+                />
+                <View style={styles.avatarHeartLarge}>
+                  <Image source={require("../../assets/icons-3d/heart.png")} style={{ width: 24, height: 24 }} contentFit="contain" />
+                </View>
               </View>
+
+              {isActive && (
+                <>
+                  <Text style={[styles.coupleTitle, { color: colors.text }]}>Vinculados</Text>
+                  <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>Ya estan conectados como pareja</Text>
+                </>
+              )}
+
+              {isPaused && (
+                <>
+                  <Text style={[styles.coupleTitle, { color: colors.text }]}>Espacio en pausa</Text>
+                  <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>
+                    {pausedBy === user?.id ? "Pausaste el espacio. Podés reactivarlo." : "Tu pareja pausó el espacio"}
+                  </Text>
+                </>
+              )}
+
+              {isPendingDelete && (
+                <>
+                  <Text style={[styles.coupleTitle, { color: colors.text }]}>Eliminación pendiente</Text>
+                  <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>
+                    {deleteRequestedBy === user?.id
+                      ? "Esperando confirmación de tu pareja o 24h"
+                      : "Tu pareja quiere eliminar el espacio"}
+                  </Text>
+                </>
+              )}
             </View>
-            <Text style={[styles.coupleTitle, { color: colors.text }]}>Vinculados</Text>
-            <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>Ya estan conectados como pareja</Text>
-            <TouchableOpacity
-              onPress={() => {
-                Alert.alert(
-                  "Desvincular",
-                  "¿Seguro que quieres desvincular tu pareja? Las entries se mantienen pero ya no se sincronizarán.",
-                  [
-                    { text: "Cancelar", style: "cancel" },
-                    {
-                      text: "Desvincular",
-                      style: "destructive",
-                      onPress: async () => {
-                        const { error } = await supabase.rpc("unlink_couple");
-                        if (error) {
-                          Alert.alert("Error", error.message);
-                          return;
-                        }
-                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                        refetchCouple();
-                      },
-                    },
-                  ]
-                );
-              }}
-              style={[styles.coupleSecondaryBtn, { backgroundColor: "transparent", borderWidth: 1.5, borderColor: colors.accentLight }]}
-            >
-              <Text style={{ color: colors.accent, fontSize: 15, fontWeight: "600" }}>Desvincular</Text>
-            </TouchableOpacity>
-          </>
-        ) : coupleMode === "join" ? (
-          <>
-            <Ionicons name="link" size={32} color={colors.accent} />
-            <Text style={[styles.coupleTitle, { color: colors.text }]}>Unirse</Text>
-            <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>Ingresa el codigo que te compartieron</Text>
-            <TextInput
-              style={[styles.coupleInput, { color: colors.text, borderColor: colors.accentLight, backgroundColor: colors.surface }]}
-              value={joinCode}
-              onChangeText={setJoinCode}
-              placeholder="--------"
-              placeholderTextColor={colors.textSecondary}
-              autoCapitalize="none"
-              autoCorrect={false}
-              maxLength={8}
-            />
-            <TouchableOpacity onPress={joinCouple} disabled={coupleLoading} activeOpacity={0.8} style={styles.couplePrimaryBtn}>
-              <LinearGradient
-                colors={["#F7A9BB", "#F36581"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.couplePrimaryGradient}
-              >
-                {coupleLoading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <View style={styles.couplePrimaryInner}>
-                    <Text style={styles.couplePrimaryText}>Vincular</Text>
-                    <Ionicons name="heart" size={18} color="#FFFFFF" />
-                  </View>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.coupleSecondaryBtn, { backgroundColor: colors.surface }]} onPress={() => setCoupleMode("home")}>
-              <Text style={[styles.coupleSecondaryText, { color: colors.textSecondary }]}>Volver</Text>
-            </TouchableOpacity>
           </>
         ) : (
+          <View key={coupleMode} style={[styles.avatarCard, { backgroundColor: colors.background }]}>
+            {coupleMode === "join" ? (
+              <>
+                <Ionicons name="link" size={32} color={colors.accent} />
+                <Text style={[styles.coupleTitle, { color: colors.text }]}>Unirse</Text>
+                <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>Ingresa el codigo que te compartieron</Text>
+                <TextInput
+                  style={[styles.coupleInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
+                  value={joinCode}
+                  onChangeText={setJoinCode}
+                  placeholder="--------"
+                  placeholderTextColor={colors.textSecondary}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={8}
+                />
+                <TouchableOpacity onPress={joinCouple} disabled={coupleLoading} activeOpacity={0.8} style={styles.couplePrimaryBtn}>
+                  <LinearGradient
+                    colors={[colors.gradientStart, colors.gradientEnd]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.couplePrimaryGradient}
+                  >
+                    {coupleLoading ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <View style={styles.couplePrimaryInner}>
+                        <Text style={styles.couplePrimaryText}>Vincular</Text>
+                        <Ionicons name="heart" size={18} color="#FFFFFF" />
+                      </View>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setCoupleMode("home")} activeOpacity={0.7} style={[styles.outlineBtn, { borderColor: colors.accent }]}>
+                  <Text style={[styles.outlineBtnText, { color: colors.accent }]}>Volver</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {avatarUrl ? (
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={styles.coupleAvatarSolo}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View style={[styles.coupleAvatarSoloPlaceholder, { backgroundColor: colors.accentLight }]}>
+                    <Ionicons name="person" size={36} color={colors.accent} />
+                  </View>
+                )}
+                <Text style={[styles.coupleTitle, { color: colors.text }]}>Tu codigo de pareja</Text>
+                <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>Comparti este codigo para vincular calendarios</Text>
+                {existingCode ? (
+                  <TouchableOpacity onPress={copyCode} activeOpacity={0.7} style={[styles.coupleCodeBox, { borderColor: colors.border }]}>
+                    <Text style={[styles.coupleCode, { color: colors.accent }]}>
+                      {codeCopied ? "COPIADO!" : existingCode.toUpperCase()}
+                    </Text>
+                    <Ionicons name={codeCopied ? "checkmark-circle" : "copy-outline"} size={20} color={colors.accent} />
+                  </TouchableOpacity>
+                ) : (
+                  <ActivityIndicator color={colors.accent} style={{ paddingVertical: 20 }} />
+                )}
+                {codeCopied && <Text style={[styles.coupleHint, { color: colors.textSecondary }]}>Enviaselo a tu pareja</Text>}
+                <TouchableOpacity onPress={() => setCoupleMode("join")} activeOpacity={0.8} style={styles.couplePrimaryBtn}>
+                  <LinearGradient
+                    colors={[colors.gradientStart, colors.gradientEnd]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.couplePrimaryGradient}
+                  >
+                    <View style={styles.couplePrimaryInner}>
+                      <Text style={styles.couplePrimaryText}>Tengo un codigo</Text>
+                      <Ionicons name="heart" size={18} color="#FFFFFF" />
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Espacio section - only when couple is complete */}
+        {isComplete && (
           <>
-            {avatarUrl ? (
-              <Image
-                source={{ uri: avatarUrl }}
-                style={styles.coupleAvatarSolo}
-                contentFit="cover"
-              />
-            ) : (
-              <View style={[styles.coupleAvatarSoloPlaceholder, { backgroundColor: colors.accentLight }]}>
-                <Ionicons name="person" size={36} color={colors.accent} />
-              </View>
-            )}
-            <Text style={[styles.coupleTitle, { color: colors.text }]}>Tu codigo de pareja</Text>
-            <Text style={[styles.coupleSubtitle, { color: colors.textSecondary }]}>Comparti este codigo para vincular calendarios</Text>
-            {existingCode ? (
-              <TouchableOpacity onPress={copyCode} activeOpacity={0.7} style={[styles.coupleCodeBox, { backgroundColor: colors.surface, borderColor: colors.accentLight }]}>
-                <Text style={[styles.coupleCode, { color: "#D4507A" }]}>
-                  {codeCopied ? "COPIADO!" : existingCode.toUpperCase()}
-                </Text>
-                <Ionicons name={codeCopied ? "checkmark-circle" : "copy-outline"} size={20} color="#D4507A" />
-              </TouchableOpacity>
-            ) : (
-              <ActivityIndicator color={colors.accent} style={{ paddingVertical: 20 }} />
-            )}
-            <Text style={[styles.coupleHint, { color: colors.textSecondary }]}>{codeCopied ? "Enviaselo a tu pareja" : "Toca para copiar"}</Text>
-            <TouchableOpacity onPress={() => setCoupleMode("join")} activeOpacity={0.8} style={styles.couplePrimaryBtn}>
-              <LinearGradient
-                colors={["#F7A9BB", "#F36581"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.couplePrimaryGradient}
-              >
-                <View style={styles.couplePrimaryInner}>
-                  <Text style={styles.couplePrimaryText}>Tengo un codigo</Text>
-                  <Ionicons name="heart" size={18} color="#FFFFFF" />
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Espacio</Text>
+            <View style={[styles.card, { backgroundColor: colors.background }]}>
+              {isActive && (
+                <TouchableOpacity onPress={handlePauseSpace} disabled={spaceLoading} activeOpacity={0.6} style={styles.cardRow}>
+                  <Ionicons name="pause-circle-outline" size={20} color={colors.accent} />
+                  <Text style={[styles.cardRowText, { color: colors.text }]}>Pausar espacio</Text>
+                  {spaceLoading && <ActivityIndicator color={colors.accent} size="small" style={{ marginLeft: "auto" }} />}
+                </TouchableOpacity>
+              )}
+              {isPaused && pausedBy === user?.id && (
+                <TouchableOpacity onPress={handleUnpauseSpace} disabled={spaceLoading} activeOpacity={0.6} style={styles.cardRow}>
+                  <Ionicons name="play-circle-outline" size={20} color={colors.accent} />
+                  <Text style={[styles.cardRowText, { color: colors.text }]}>Reactivar espacio</Text>
+                  {spaceLoading && <ActivityIndicator color={colors.accent} size="small" style={{ marginLeft: "auto" }} />}
+                </TouchableOpacity>
+              )}
+              {(isPaused || isPendingDelete) && (
+                <>
+                  {(isPaused || (isPendingDelete && deleteRequestedBy !== user?.id)) && (
+                    <View style={[styles.cardDivider, { backgroundColor: colors.border }]} />
+                  )}
+                  {isPendingDelete && canFinalizeDelete && (
+                    <TouchableOpacity onPress={deleteSpaceWithPhotos} disabled={spaceLoading} activeOpacity={0.6} style={styles.cardRow}>
+                      <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                      <Text style={[styles.cardRowText, { color: "#EF4444" }]}>Eliminar definitivamente</Text>
+                      {spaceLoading && <ActivityIndicator color="#EF4444" size="small" style={{ marginLeft: "auto" }} />}
+                    </TouchableOpacity>
+                  )}
+                  {isPendingDelete && !canFinalizeDelete && deleteRequestedBy !== user?.id && (
+                    <TouchableOpacity onPress={deleteSpaceWithPhotos} disabled={spaceLoading} activeOpacity={0.6} style={styles.cardRow}>
+                      <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                      <Text style={[styles.cardRowText, { color: "#EF4444" }]}>Confirmar eliminación</Text>
+                      {spaceLoading && <ActivityIndicator color="#EF4444" size="small" style={{ marginLeft: "auto" }} />}
+                    </TouchableOpacity>
+                  )}
+                  {isPendingDelete && (
+                    <>
+                      <View style={[styles.cardDivider, { backgroundColor: colors.border }]} />
+                      <TouchableOpacity onPress={handleCancelDelete} disabled={spaceLoading} activeOpacity={0.6} style={styles.cardRow}>
+                        <Ionicons name="close-circle-outline" size={20} color={colors.textSecondary} />
+                        <Text style={[styles.cardRowText, { color: colors.textSecondary }]}>Cancelar eliminación</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                  {isPaused && (
+                    <TouchableOpacity onPress={handleRequestDelete} disabled={spaceLoading} activeOpacity={0.6} style={styles.cardRow}>
+                      <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                      <Text style={[styles.cardRowText, { color: "#EF4444" }]}>Eliminar todo</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+            </View>
           </>
         )}
 
-        <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+        {/* Apariencia section */}
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Apariencia</Text>
+        <View style={[styles.card, { backgroundColor: colors.background }]}>
+          <View style={[styles.themeRow, { backgroundColor: colors.background }]}>
+            {THEME_OPTIONS.map((opt) => {
+              const active = theme === opt.key;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.themeButton,
+                    active && [styles.themeButtonActive, { backgroundColor: colors.surface, borderColor: colors.border }],
+                  ]}
+                  onPress={() => selectTheme(opt.key)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name={opt.icon as keyof typeof Ionicons.glyphMap} size={15} color={active ? colors.accent : colors.textSecondary} />
+                  <Text style={[styles.themeButtonText, { color: active ? colors.text : colors.textSecondary }]}>{opt.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
 
-        <View style={styles.settingsSection}>
-          <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
-            <View style={styles.settingsAccountInfo}>
-              <Text style={[styles.settingsName, { color: colors.text }]}>{displayName ?? "Sin nombre"}</Text>
-              <Text style={[styles.settingsEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
+        {/* Cuenta section */}
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Cuenta</Text>
+        <View style={[styles.card, { backgroundColor: colors.background }]}>
+          <View style={styles.cardRow}>
+            <Ionicons name="person-outline" size={20} color={colors.textSecondary} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.cardRowText, { color: colors.text }]}>{displayName ?? "Sin nombre"}</Text>
+              <Text style={[styles.cardRowSubtext, { color: colors.textSecondary }]}>{user?.email}</Text>
             </View>
           </View>
-
-          <View style={[styles.settingsCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.settingsLabel, { color: colors.textSecondary }]}>APARIENCIA</Text>
-            <View style={[styles.themeRow, { backgroundColor: isDark ? colors.background : "#FFF0F5" }]}>
-              {THEME_OPTIONS.map((opt) => {
-                const isActive = theme === opt.key;
-                return (
-                  <TouchableOpacity
-                    key={opt.key}
-                    style={[styles.themeButton, isActive && { backgroundColor: "#FFFFFF" }]}
-                    onPress={() => selectTheme(opt.key)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name={opt.icon as keyof typeof Ionicons.glyphMap} size={16} color={isActive ? "#D4507A" : colors.textSecondary} />
-                    <Text style={[styles.themeButtonText, { color: isActive ? "#D4507A" : colors.textSecondary }]}>{opt.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          <TouchableOpacity style={[styles.settingsCard, { backgroundColor: colors.surface }]} onPress={confirmLogout} activeOpacity={0.6}>
-            <View style={styles.logoutButton}>
-              <Ionicons name="log-out-outline" size={18} color="#FF3B30" />
-              <Text style={styles.logoutText}>Cerrar sesión</Text>
-            </View>
+          <View style={[styles.cardDivider, { backgroundColor: colors.border }]} />
+          <TouchableOpacity onPress={confirmLogout} activeOpacity={0.6} style={styles.cardRow}>
+            <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+            <Text style={[styles.cardRowText, { color: "#EF4444" }]}>Cerrar sesión</Text>
           </TouchableOpacity>
         </View>
       </Drawer>
@@ -684,50 +867,43 @@ const styles = StyleSheet.create({
     marginTop: 2,
     lineHeight: 18,
   },
-  settingsCard: {
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-  },
-  settingsAccount: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  settingsAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  settingsAvatarPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  settingsAccountInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  settingsName: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  settingsEmail: {
+  sectionTitle: {
     fontSize: 13,
-  },
-  settingsLabel: {
-    fontSize: 12,
     fontWeight: "600",
     letterSpacing: 0.5,
-    marginBottom: -4,
+    textTransform: "uppercase",
+    alignSelf: "flex-start",
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  card: {
+    width: "100%",
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  cardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    minHeight: 48,
+  },
+  cardRowText: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  cardRowSubtext: {
+    fontSize: 13,
+    marginTop: 1,
+  },
+  cardDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 48,
   },
   themeRow: {
     flexDirection: "row",
-    borderRadius: 16,
-    padding: 4,
+    borderRadius: 12,
+    padding: 3,
   },
   themeButton: {
     flex: 1,
@@ -735,36 +911,42 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: 8,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  themeButtonActive: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   themeButtonText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
   },
-  logoutButton: {
-    flexDirection: "row",
+  avatarCard: {
+    width: "100%",
+    borderRadius: 14,
     alignItems: "center",
-    gap: spacing.sm,
-  },
-  logoutText: {
-    color: "#FF3B30",
-    fontSize: 16,
-    fontWeight: "500",
+    paddingTop: 28,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    gap: 8,
   },
   avatarStackLarge: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacing.sm,
-    width: 110,
-    height: 60,
+    justifyContent: "center",
+    marginBottom: 8,
   },
   avatarLarge: {
     width: 56,
     height: 56,
     borderRadius: 28,
     borderWidth: 3,
-    borderColor: "#FFFFFF",
   },
   avatarLargeLeft: {
     zIndex: 2,
@@ -775,9 +957,8 @@ const styles = StyleSheet.create({
   },
   avatarHeartLarge: {
     position: "absolute",
-    top: -6,
-    left: "50%",
-    marginLeft: -18,
+    top: -2,
+    alignSelf: "center",
     zIndex: 3,
   },
   coupleAvatarSolo: {
@@ -798,13 +979,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "700",
     textAlign: "center",
-    marginBottom: -6,
+    marginBottom: 4,
   },
   coupleSubtitle: {
     fontSize: 14,
     textAlign: "center",
     lineHeight: 20,
-    marginBottom: spacing.sm,
   },
   coupleCodeBox: {
     flexDirection: "row",
@@ -815,6 +995,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1.5,
     borderStyle: "dashed",
+    marginVertical: 8,
   },
   coupleCode: {
     fontSize: 28,
@@ -823,7 +1004,17 @@ const styles = StyleSheet.create({
   },
   coupleHint: {
     fontSize: 12,
-    marginTop: -2,
+  },
+  outlineBtn: {
+    width: "100%",
+    borderRadius: 28,
+    borderWidth: 1.5,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  outlineBtnText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
   coupleInput: {
     width: "100%",
@@ -838,7 +1029,6 @@ const styles = StyleSheet.create({
   },
   couplePrimaryBtn: {
     width: "100%",
-    marginTop: spacing.sm,
     borderRadius: 28,
     overflow: "hidden",
   },
@@ -858,24 +1048,5 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
-  },
-  coupleSecondaryBtn: {
-    width: "100%",
-    borderRadius: 28,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  coupleSecondaryText: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  menuDivider: {
-    width: "100%",
-    height: 1,
-    marginVertical: 4,
-  },
-  settingsSection: {
-    width: "100%",
-    gap: 10,
   },
 });
