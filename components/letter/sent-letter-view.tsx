@@ -117,7 +117,7 @@ export function SentLetterView({ letter }: Props) {
                 color={wasRead ? "#FFFFFF" : colors.accent}
               />
               <Text style={[styles.badgeText, { color: wasRead ? "#FFFFFF" : colors.accent }]}>
-                {wasRead ? "Leída" : "No leída aún"}
+                {wasRead ? "Ya la leyó" : "Aún no la abre"}
               </Text>
             </View>
 

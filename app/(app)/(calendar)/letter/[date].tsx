@@ -42,7 +42,7 @@ export default function LetterScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } else {
-      Alert.alert("Error", "No se pudo enviar la cartita. Intenta de nuevo.");
+      Alert.alert("Ups", "No se pudo enviar tu cartita. Intenta de nuevo.");
     }
   }
 
@@ -56,7 +56,7 @@ export default function LetterScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Escribir cartita</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Escríbele algo lindo</Text>
         <View style={styles.backButton} />
       </View>
 
@@ -83,7 +83,7 @@ export default function LetterScreen() {
 
           <TextInput
             style={[styles.textInput, { color: colors.text }]}
-            placeholder="Escribe algo bonito..."
+            placeholder="Dile lo que sientes..."
             placeholderTextColor={colors.textSecondary}
             multiline
             autoFocus
@@ -106,7 +106,7 @@ export default function LetterScreen() {
         >
           <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
           <Text style={styles.sendText}>
-            {sending ? "Enviando..." : "Enviar cartita"}
+            {sending ? "Enviando..." : "Enviar con amor"}
           </Text>
         </TouchableOpacity>
       </View>

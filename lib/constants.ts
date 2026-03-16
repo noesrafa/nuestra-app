@@ -9,7 +9,7 @@ export const DB = {
   SELECTS: {
     ENTRY_FULL: "id, date, title, photo_url, notes, hearts",
     ENTRY_THUMB: "date, photo_url",
-    COUPLE_FULL: "id, user_a, user_b, invite_code",
+    COUPLE_FULL: "id, user_a, user_b, invite_code, nickname_a, nickname_b",
     LETTER_FULL: "id, couple_id, date, from_user, body, read_at, created_at",
     PROFILE_AVATAR: "id, avatar_url",
     PROFILE_DISPLAY: "display_name, avatar_url",

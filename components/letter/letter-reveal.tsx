@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { useCouple } from "@/hooks/use-couple";
 import type { Letter } from "@/lib/types";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -24,8 +25,10 @@ type Props = {
 
 export function LetterReveal({ letter, onRead }: Props) {
   const { colors, isDark } = useTheme();
+  const { partnerNickname } = useCouple();
   const [open, setOpen] = useState(false);
   const isUnread = !letter.read_at;
+  const signText = partnerNickname || "con amor";
 
   const bounceY = useRef(new Animated.Value(0)).current;
   const heartOpacity = useRef(new Animated.Value(1)).current;
@@ -193,7 +196,7 @@ export function LetterReveal({ letter, onRead }: Props) {
               <View style={styles.signRow}>
                 <View style={[styles.signLine, { backgroundColor: colors.accent }]} />
                 <Text style={[styles.letterSign, { color: colors.accent }]}>
-                  con amor
+                  {signText}
                 </Text>
               </View>
             </View>

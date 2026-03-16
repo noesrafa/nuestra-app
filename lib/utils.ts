@@ -19,30 +19,30 @@ export function formatDate(year: number, month: number, day: number) {
 }
 
 const PROMPTS_WEEKDAY = [
-  "¿Qué hicieron hoy juntos?",
-  "Un recuerdo más juntos",
-  "Capturen este momento",
-  "¿Cómo fue su día?",
-  "Guarden este recuerdo",
+  "¿Qué hicieron hoy, amor?",
+  "Otro día más juntitos",
+  "No dejen pasar este momento",
+  "¿Cómo les fue hoy?",
+  "Este recuerdo es de ustedes",
 ];
 
 const PROMPTS_WEEKEND = [
-  "¿A dónde salieron hoy?",
-  "Fin de semana juntos",
-  "¿Qué aventura vivieron hoy?",
-  "Un momento especial juntos",
+  "¿A dónde se escaparon hoy?",
+  "Finde juntos, ¡a disfrutar!",
+  "¿Qué aventura les tocó hoy?",
+  "Un finde más para recordar",
 ];
 
 const PROMPTS_TODAY = [
-  "¿Qué están haciendo hoy?",
-  "Capturen el momento",
-  "Hoy es un buen día para una foto juntos",
+  "¿Qué andan haciendo, tortolitos?",
+  "¡Selfie juntos, ya!",
+  "Hoy es buen día para una fotito",
 ];
 
 const PROMPTS_PAST = [
   "¿Qué hicieron este día?",
-  "Un recuerdo por guardar",
-  "¿Cómo fue este día juntos?",
+  "Este recuerdo merece una foto",
+  "¿Cómo les fue juntos ese día?",
 ];
 
 export function getPhotoPrompt(dateStr: string): string {

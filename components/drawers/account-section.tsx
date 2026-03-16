@@ -24,7 +24,7 @@ export function AccountSection({ onClose }: Props) {
 
   return (
     <>
-      <Text style={[styles.sectionTitle, { color: colors.accent }]}>Cuenta</Text>
+      <Text style={[styles.sectionTitle, { color: colors.accent }]}>CUENTA</Text>
       <View style={[styles.card, { backgroundColor: colors.background }]}>
         <CardRow
           icon="person-outline"

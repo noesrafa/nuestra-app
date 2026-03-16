@@ -10,6 +10,7 @@ import { useRealtime } from "@/hooks/use-realtime";
 import { DB } from "@/lib/constants";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 import { CoupleCard } from "@/components/drawers/couple-card";
+import { PartnerSection } from "@/components/drawers/partner-section";
 import { SpaceSection } from "@/components/drawers/space-section";
 import { ThemeSection } from "@/components/drawers/theme-section";
 import { AccountSection } from "@/components/drawers/account-section";
@@ -53,25 +54,25 @@ export default function NosotrosScreen() {
             <>
               {isActive && (
                 <>
-                  <Text style={[styles.statusTitle, { color: colors.accent }]}>Vinculados</Text>
-                  <Text style={[styles.statusSub, { color: colors.accent }]}>Ya están conectados como pareja</Text>
+                  <Text style={[styles.statusTitle, { color: colors.accent }]}>Juntitos</Text>
+                  <Text style={[styles.statusSub, { color: colors.accent }]}>Están conectados como pareja</Text>
                 </>
               )}
               {isPaused && (
                 <>
-                  <Text style={[styles.statusTitle, { color: colors.accent }]}>Espacio en pausa</Text>
+                  <Text style={[styles.statusTitle, { color: colors.accent }]}>Descansando</Text>
                   <Text style={[styles.statusSub, { color: colors.accent }]}>
-                    {pausedBy === user?.id ? "Pausaste el espacio. Podés reactivarlo." : "Tu pareja pausó el espacio"}
+                    {pausedBy === user?.id ? "Tú pediste el descanso. Puedes volver cuando quieras." : "Tu pareja pidió un descanso"}
                   </Text>
                 </>
               )}
               {isPendingDelete && (
                 <>
-                  <Text style={[styles.statusTitle, { color: colors.accent }]}>Eliminación pendiente</Text>
+                  <Text style={[styles.statusTitle, { color: colors.accent }]}>Despidiéndose</Text>
                   <Text style={[styles.statusSub, { color: colors.accent }]}>
                     {deleteRequestedBy === user?.id
-                      ? "Esperando confirmación de tu pareja o 24h"
-                      : "Tu pareja quiere eliminar el espacio"}
+                      ? "Esperando a tu pareja o 24h para borrar todo"
+                      : "Tu pareja quiere borrar el espacio"}
                   </Text>
                 </>
               )}
@@ -80,8 +81,9 @@ export default function NosotrosScreen() {
           onJoined={() => { refetchCouple(); refetchSpace(); }}
         />
 
-        {isComplete && <SpaceSection onMutate={handleRefresh} />}
+        {isComplete && <PartnerSection />}
         <ThemeSection />
+        {isComplete && <SpaceSection onMutate={handleRefresh} />}
         <AccountSection />
       </ScrollView>
     </SafeAreaView>
@@ -93,8 +95,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 28,
+    fontWeight: "300",
     textAlign: "center",
     paddingVertical: spacing.md,
   },

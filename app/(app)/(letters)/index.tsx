@@ -14,52 +14,55 @@ import * as Haptics from "expo-haptics";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { useCouple } from "@/hooks/use-couple";
 import { useLettersFeed, type FeedLetter } from "@/hooks/use-letters-feed";
 import { formatDisplayDate } from "@/lib/utils";
 
 type Filter = "received" | "sent";
 
-function Toggle({ active, colors }: { active: Filter; colors: Record<string, string> }) {
-  return null; // rendered inline
-}
+const ROTATIONS = ["-1.5deg", "1deg", "-0.5deg", "1.5deg", "-1deg", "0.8deg"];
 
 function LetterCard({
   letter,
+  index,
   colors,
   isDark,
+  signText,
   onPress,
 }: {
   letter: FeedLetter;
+  index: number;
   colors: Record<string, string>;
   isDark: boolean;
+  signText: string;
   onPress: () => void;
 }) {
+  const paperBg = isDark ? colors.accentLight : "#FFFFFF";
+  const lineColor = isDark ? "rgba(212,99,138,0.10)" : "rgba(139,34,82,0.06)";
+  const rotation = ROTATIONS[index % ROTATIONS.length];
+
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}
+      style={[styles.card, { backgroundColor: paperBg, transform: [{ rotate: rotation }] }]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
-      <View style={styles.cardHeader}>
-        <Text style={[styles.cardDate, { color: colors.textSecondary }]} numberOfLines={1}>
-          {formatDisplayDate(letter.date)}
-        </Text>
-        {!letter.isMine && !letter.read_at && (
-          <View style={[styles.newBadge, { backgroundColor: colors.accent }]}>
-            <Text style={styles.newBadgeText}>Nueva</Text>
-          </View>
-        )}
-      </View>
+      {/* Paper lines */}
+      {Array.from({ length: 6 }).map((_, i) => (
+        <View key={i} style={[styles.line, { top: 12 + i * 26, backgroundColor: lineColor }]} />
+      ))}
 
       <Text style={[styles.cardBody, { color: colors.text }]} numberOfLines={3}>
         {letter.body}
       </Text>
 
-      <View style={styles.cardFooter}>
+      <View style={styles.cardBottom}>
         <Text style={[styles.cardSign, { color: colors.accent }]}>
-          {letter.isMine ? "tu cartita" : "con amor"}
+          {letter.isMine ? "tu cartita" : signText}
         </Text>
-        <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+        <Text style={[styles.cardDate, { color: colors.accent, opacity: 0.5 }]} numberOfLines={1}>
+          {formatDisplayDate(letter.date)}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -67,8 +70,10 @@ function LetterCard({
 
 export default function LettersFeedScreen() {
   const { colors, isDark } = useTheme();
+  const { partnerNickname } = useCouple();
   const { letters, loading, reload } = useLettersFeed();
   const [filter, setFilter] = useState<Filter>("received");
+  const receivedSign = partnerNickname || "con amor";
 
   const received = useMemo(() => letters.filter((l) => !l.isMine), [letters]);
   const sent = useMemo(() => letters.filter((l) => l.isMine), [letters]);
@@ -103,45 +108,37 @@ export default function LettersFeedScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]}>
       <Text style={[styles.title, { color: colors.accent }]}>Cartitas</Text>
 
-      {/* Toggle */}
-      <View style={[styles.toggleRow, { backgroundColor: isDark ? colors.accentLight : colors.background }]}>
+      {/* Toggle — underline style */}
+      <View style={styles.toggleRow}>
         <TouchableOpacity
-          style={[styles.toggleBtn, filter === "received" && [styles.toggleActive, { backgroundColor: colors.accent }]]}
+          style={styles.toggleBtn}
           onPress={() => switchFilter("received")}
-          activeOpacity={0.8}
+          activeOpacity={0.7}
         >
-          <Ionicons
-            name="heart"
-            size={14}
-            color={filter === "received" ? "#FFFFFF" : colors.accent}
-          />
-          <Text style={[styles.toggleText, { color: filter === "received" ? "#FFFFFF" : colors.accent }]}>
+          <Text style={[styles.toggleText, { color: filter === "received" ? colors.accent : colors.textSecondary }]}>
             Recibidas
           </Text>
+          {filter === "received" && <View style={[styles.toggleLine, { backgroundColor: colors.accent }]} />}
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.toggleBtn, filter === "sent" && [styles.toggleActive, { backgroundColor: colors.accent }]]}
+          style={styles.toggleBtn}
           onPress={() => switchFilter("sent")}
-          activeOpacity={0.8}
+          activeOpacity={0.7}
         >
-          <Ionicons
-            name="paper-plane"
-            size={14}
-            color={filter === "sent" ? "#FFFFFF" : colors.accent}
-          />
-          <Text style={[styles.toggleText, { color: filter === "sent" ? "#FFFFFF" : colors.accent }]}>
+          <Text style={[styles.toggleText, { color: filter === "sent" ? colors.accent : colors.textSecondary }]}>
             Enviadas
           </Text>
+          {filter === "sent" && <View style={[styles.toggleLine, { backgroundColor: colors.accent }]} />}
         </TouchableOpacity>
       </View>
 
       {filter === "received" && unreadCount > 0 && (
-        <View style={[styles.unreadBanner, { borderColor: colors.accent }]}>
-          <Ionicons name="gift" size={18} color={colors.accent} />
+        <View style={styles.unreadRow}>
+          <Ionicons name="gift-outline" size={15} color={colors.accent} />
           <Text style={[styles.unreadText, { color: colors.accent }]}>
             {unreadCount === 1
-              ? "Tienes 1 cartita por descubrir"
-              : `Tienes ${unreadCount} cartitas por descubrir`}
+              ? "1 cartita esperándote"
+              : `${unreadCount} cartitas esperándote`}
           </Text>
         </View>
       )}
@@ -152,28 +149,30 @@ export default function LettersFeedScreen() {
             name={filter === "received" ? "heart-outline" : "paper-plane-outline"}
             size={48}
             color={colors.accent}
-            style={{ opacity: 0.3 }}
+            style={{ opacity: 0.2 }}
           />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             {filter === "received"
-              ? unreadCount > 0 ? "Abre tus regalos en el calendario" : "No has recibido cartitas aún"
-              : "No has enviado cartitas aún"}
+              ? unreadCount > 0 ? "Tienes regalos en el calendario" : "Aún no te han escrito"
+              : "Aún no has escrito nada"}
           </Text>
           <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
             {filter === "received"
-              ? unreadCount > 0 ? "Las cartitas aparecen aquí después de leerlas" : "Tu pareja puede escribirte desde el calendario"
-              : "Escríbele algo bonito desde el calendario"}
+              ? unreadCount > 0 ? "Ábrelos desde el día que brilla" : "Cuando te escriban, las verás aquí"
+              : "Dale una sorpresa desde el calendario"}
           </Text>
         </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <LetterCard
               letter={item}
+              index={index}
               colors={colors}
               isDark={isDark}
+              signText={receivedSign}
               onPress={() => handleLetterPress(item)}
             />
           )}
@@ -199,52 +198,43 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   title: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 28,
+    fontWeight: "300",
     textAlign: "center",
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
   },
   toggleRow: {
     flexDirection: "row",
-    marginHorizontal: spacing.lg,
+    justifyContent: "center",
+    gap: spacing.xl,
     marginBottom: spacing.md,
-    borderRadius: 12,
-    padding: 3,
   },
   toggleBtn: {
-    flex: 1,
+    alignItems: "center",
+    paddingVertical: spacing.xs,
+  },
+  toggleText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  toggleLine: {
+    marginTop: 4,
+    width: 24,
+    height: 2,
+    borderRadius: 1,
+  },
+  unreadRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  toggleActive: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  toggleText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  unreadBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
   },
   unreadText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "500",
+    fontStyle: "italic",
   },
   emptyText: {
     fontSize: 16,
@@ -258,54 +248,46 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
     paddingBottom: 120,
   },
   card: {
-    borderRadius: 16,
+    borderRadius: 4,
     padding: spacing.md,
-    marginBottom: spacing.sm,
+    paddingBottom: spacing.lg,
+    marginBottom: spacing.lg,
+    minHeight: 100,
+    overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: spacing.sm,
-  },
-  cardDate: {
-    fontSize: 12,
-    fontWeight: "500",
-    textTransform: "capitalize",
-    flex: 1,
-  },
-  newBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  newBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontWeight: "700",
+  line: {
+    position: "absolute",
+    left: spacing.md,
+    right: spacing.md,
+    height: StyleSheet.hairlineWidth,
   },
   cardBody: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 26,
     fontStyle: "italic",
   },
-  cardFooter: {
+  cardBottom: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   cardSign: {
     fontSize: 12,
     fontStyle: "italic",
     fontWeight: "500",
+  },
+  cardDate: {
+    fontSize: 11,
+    textTransform: "capitalize",
   },
 });

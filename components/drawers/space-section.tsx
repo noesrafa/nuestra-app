@@ -30,13 +30,13 @@ export function SpaceSection({ onClose, onMutate }: Props) {
 
   return (
     <>
-      <Text style={[styles.sectionTitle, { color: colors.accent }]}>Espacio</Text>
+      <Text style={[styles.sectionTitle, { color: colors.accent }]}>ESPACIO</Text>
       <View style={[styles.card, { backgroundColor: colors.background }]}>
         {isActive && (
           <CardRow
             icon="pause-circle-outline"
             iconColor={colors.accent}
-            text="Pausar espacio"
+            text="Tomar un descanso"
             onPress={handlePauseSpace}
             loading={spaceLoading}
             disabled={spaceLoading}
@@ -46,7 +46,7 @@ export function SpaceSection({ onClose, onMutate }: Props) {
           <CardRow
             icon="play-circle-outline"
             iconColor={colors.accent}
-            text="Reactivar espacio"
+            text="Volver a estar juntos"
             onPress={handleUnpauseSpace}
             loading={spaceLoading}
             disabled={spaceLoading}
@@ -61,7 +61,7 @@ export function SpaceSection({ onClose, onMutate }: Props) {
               <CardRow
                 icon="trash-outline"
                 iconColor={SEMANTIC_COLORS.DANGER}
-                text="Eliminar definitivamente"
+                text="Borrar todo para siempre"
                 textColor={SEMANTIC_COLORS.DANGER}
                 onPress={deleteSpaceWithPhotos}
                 loading={spaceLoading}
@@ -72,7 +72,7 @@ export function SpaceSection({ onClose, onMutate }: Props) {
               <CardRow
                 icon="trash-outline"
                 iconColor={SEMANTIC_COLORS.DANGER}
-                text="Confirmar eliminación"
+                text="Sí, borrar todo"
                 textColor={SEMANTIC_COLORS.DANGER}
                 onPress={deleteSpaceWithPhotos}
                 loading={spaceLoading}
@@ -85,7 +85,7 @@ export function SpaceSection({ onClose, onMutate }: Props) {
                 <CardRow
                   icon="close-circle-outline"
                   iconColor={colors.textSecondary}
-                  text="Cancelar eliminación"
+                  text="No, mejor no"
                   textColor={colors.textSecondary}
                   onPress={handleCancelDelete}
                   disabled={spaceLoading}
@@ -96,7 +96,7 @@ export function SpaceSection({ onClose, onMutate }: Props) {
               <CardRow
                 icon="trash-outline"
                 iconColor={SEMANTIC_COLORS.DANGER}
-                text="Eliminar todo"
+                text="Borrar todo"
                 textColor={SEMANTIC_COLORS.DANGER}
                 onPress={handleRequestDelete}
                 disabled={spaceLoading}

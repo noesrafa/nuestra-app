@@ -12,6 +12,8 @@ export type Couple = {
   user_a: string;
   user_b: string | null;
   invite_code: string;
+  nickname_a: string | null;
+  nickname_b: string | null;
 };
 
 export type Space = {

@@ -102,10 +102,10 @@ export function useEntryManager(date: string, onChanged?: () => void) {
 
   async function deleteEntry() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    Alert.alert("Borrar foto", "¿Seguro que querés borrar esta entrada?", [
-      { text: "Cancelar", style: "cancel" },
+    Alert.alert("Borrar recuerdo", "¿Seguro que quieres borrar este momento?", [
+      { text: "No, dejarlo", style: "cancel" },
       {
-        text: "Borrar",
+        text: "Sí, borrar",
         style: "destructive",
         onPress: async () => {
           if (!entry) return;

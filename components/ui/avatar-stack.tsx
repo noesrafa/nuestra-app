@@ -1,5 +1,6 @@
 import { View, StyleSheet } from "react-native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/use-theme";
 
 type Props = {
@@ -41,11 +42,7 @@ export function AvatarStack({ avatars, size = "small" }: Props) {
         contentFit="cover"
       />
       <View style={[styles.heart, { top: s.heartTop, left: heartLeft, width: s.heartSize, height: s.heartSize }]}>
-        <Image
-          source={require("../../assets/icons-3d/heart.png")}
-          style={{ width: s.heartSize, height: s.heartSize }}
-          contentFit="contain"
-        />
+        <Ionicons name="heart" size={s.heartSize} color={colors.accent} />
       </View>
     </View>
   );

@@ -138,7 +138,7 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
       ) : readOnly ? (
         <View style={styles.emptyContainer}>
           <Text style={[styles.promptHint, { color: colors.textSecondary, paddingVertical: spacing.xl }]}>
-            Sin foto para este día
+            Aún no hay foto de este día
           </Text>
           {receivedLetter && (
             <View style={styles.actionsRow}>
@@ -170,7 +170,7 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
                       {getPhotoPrompt(date)} <Ionicons name="heart" size={13} color="#FFFFFF" />
                     </Text>
                     <Text style={[styles.promptHint, { color: isDark ? colors.textSecondary : "#999" }]}>
-                      Toca para agregar foto
+                      Toca para subir su foto
                     </Text>
                   </View>
                 </View>

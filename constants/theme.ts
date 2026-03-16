@@ -31,7 +31,7 @@ export const palettes: Record<"rosa" | "dark", ColorPalette> = {
   dark: {
     background: "#1A0A10",
     surface: "#2A1520",
-    accent: "#D4638A",
+    accent: "#F094AE",
     accentLight: "#3D2030",
     text: "#F0E4E8",
     textSecondary: "#A07080",

@@ -30,7 +30,7 @@ export function SpaceStatusBanner({ status, deleteRequestedAt }: Props) {
     return (
       <View style={[styles.banner, styles.bannerPaused]}>
         <Ionicons name="pause-circle" size={16} color={SEMANTIC_COLORS.WARNING_TEXT} />
-        <Text style={styles.textPaused}>Espacio en pausa</Text>
+        <Text style={styles.textPaused}>Están tomando un descanso</Text>
       </View>
     );
   }
@@ -43,7 +43,7 @@ export function SpaceStatusBanner({ status, deleteRequestedAt }: Props) {
     <View style={[styles.banner, styles.bannerDelete]}>
       <Ionicons name="warning" size={16} color={SEMANTIC_COLORS.ERROR_TEXT} />
       <Text style={styles.textDelete}>
-        Eliminación pendiente — {remaining > 0 ? formatCountdown(remaining) : "Listo para eliminar"}
+        Se borrará en {remaining > 0 ? formatCountdown(remaining) : "cualquier momento"}
       </Text>
     </View>
   );
