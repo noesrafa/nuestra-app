@@ -62,7 +62,7 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
             </View>
           )}
 
-          <Pressable onPress={readOnly ? undefined : onHeartTap} style={styles.photoPress}>
+          <Pressable onPress={readOnly ? undefined : deleteEntry} style={styles.photoPress}>
             <View style={[styles.polaroid, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}>
               <Image
                 source={{ uri: entry.photo_url }}
@@ -79,8 +79,8 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
               <Text style={[styles.statusText, { color: colors.textSecondary }]}>{uploadStatus}</Text>
             </View>
           ) : (
-            <TouchableOpacity style={styles.deleteButton} onPress={deleteEntry}>
-              <Ionicons name="trash-outline" size={20} color={colors.accent} />
+            <TouchableOpacity style={[styles.heartButton, { backgroundColor: colors.accentLight }]} onPress={onHeartTap}>
+              <Ionicons name="heart" size={22} color={colors.accent} />
             </TouchableOpacity>
           )}
         </View>
@@ -168,9 +168,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  deleteButton: {
+  heartButton: {
     marginTop: spacing.md,
-    padding: spacing.sm,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
   },
   uploadingRow: {
     flexDirection: "row",

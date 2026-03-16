@@ -13,11 +13,17 @@ export function useEntryManager(date: string, onChanged?: () => void) {
   const [title, setTitle] = useState(formatDisplayDate(date));
   const [notes, setNotes] = useState("");
   const [hearts, setHearts] = useState(0);
+  const heartsRef = useRef(0);
+  const heartTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const heartCooldown = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const isFirstLoad = useRef(true);
+  const lastDate = useRef(date);
+  if (lastDate.current !== date) {
+    lastDate.current = date;
+    setLoading(true);
+  }
 
   const loadEntry = useCallback(async () => {
-    if (isFirstLoad.current) setLoading(true);
     const { data } = await supabase
       .from(DB.TABLES.ENTRIES)
       .select(DB.SELECTS.ENTRY_FULL)
@@ -32,14 +38,18 @@ export function useEntryManager(date: string, onChanged?: () => void) {
     if (data) {
       setTitle(data.title);
       setNotes(data.notes ?? "");
-      setHearts(data.hearts ?? 0);
+      const h = data.hearts ?? 0;
+      if (!heartCooldown.current) {
+        setHearts(h);
+        heartsRef.current = h;
+      }
     } else {
       setTitle(formatDisplayDate(date));
       setNotes("");
       setHearts(0);
+      heartsRef.current = 0;
     }
     setLoading(false);
-    isFirstLoad.current = false;
   }, [date]);
 
   useEffect(() => {
@@ -54,7 +64,11 @@ export function useEntryManager(date: string, onChanged?: () => void) {
         "postgres_changes",
         { event: "*", schema: "public", table: DB.TABLES.ENTRIES },
         (payload) => {
-          const row = (payload.new as Record<string, unknown>) ?? (payload.old as Record<string, unknown>);
+          if (payload.eventType === "DELETE") {
+            loadEntry();
+            return;
+          }
+          const row = payload.new as Record<string, unknown>;
           if (row?.date === date) loadEntry();
         }
       )
@@ -88,16 +102,22 @@ export function useEntryManager(date: string, onChanged?: () => void) {
     if (entry) debounceSave({ notes: text });
   }
 
-  async function onHeartTap() {
+  function onHeartTap() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const newHearts = hearts + 1;
-    setHearts(newHearts);
-    if (entry) {
-      await supabase
-        .from(DB.TABLES.ENTRIES)
-        .update({ hearts: newHearts })
-        .eq("id", entry.id);
-    }
+    heartsRef.current += 1;
+    setHearts(heartsRef.current);
+    heartCooldown.current = true;
+
+    if (heartTimer.current) clearTimeout(heartTimer.current);
+    heartTimer.current = setTimeout(async () => {
+      if (entry) {
+        await supabase
+          .from(DB.TABLES.ENTRIES)
+          .update({ hearts: heartsRef.current })
+          .eq("id", entry.id);
+      }
+      heartCooldown.current = false;
+    }, 800);
   }
 
   async function deleteEntry() {
