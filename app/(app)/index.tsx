@@ -43,7 +43,6 @@ export default function CalendarScreen() {
   const [totalDays, setTotalDays] = useState(0);
   const [selectedDate, setSelectedDate] = useState("");
   const [refreshing, setRefreshing] = useState(false);
-  const [realtimeKey, setRealtimeKey] = useState(0);
 
   const shareDrawerRef = useRef<BottomSheet>(null);
   const dayDrawerRef = useRef<BottomSheet>(null);
@@ -87,7 +86,6 @@ export default function CalendarScreen() {
     loadEntries();
     loadTotalDays();
     refetchSpace();
-    setRealtimeKey((k) => k + 1);
   });
 
   function prevMonth() {
@@ -161,7 +159,7 @@ export default function CalendarScreen() {
       </Drawer>
 
       <Drawer ref={dayDrawerRef} scrollable>
-        {selectedDate ? <DayDetailContent date={selectedDate} onChanged={onRefresh} readOnly={spaceReadOnly} refreshKey={realtimeKey} /> : null}
+        {selectedDate ? <DayDetailContent date={selectedDate} onChanged={onRefresh} readOnly={spaceReadOnly} /> : null}
       </Drawer>
 
       <Drawer ref={coupleDrawerRef} scrollable>

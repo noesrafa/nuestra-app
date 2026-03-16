@@ -4,35 +4,32 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Platform,
   Pressable,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { spacing, SEMANTIC_COLORS } from "@/constants/theme";
+import { spacing } from "@/constants/theme";
 import { formatDisplayDate } from "@/lib/utils";
 import { useCouple } from "@/hooks/use-couple";
 import { useTheme } from "@/hooks/use-theme";
 import { useEntryManager } from "@/hooks/use-entry-manager";
 import { usePhotoUpload, type UploadContext } from "@/hooks/use-photo-upload";
-import { GradientButton } from "@/components/ui/gradient-button";
 
 type Props = {
   date: string;
   onChanged?: () => void;
   readOnly?: boolean;
-  refreshKey?: number;
 };
 
-export function DayDetailContent({ date, onChanged, readOnly, refreshKey }: Props) {
+export function DayDetailContent({ date, onChanged, readOnly }: Props) {
   const { colors, isDark } = useTheme();
   const { coupleId } = useCouple();
   const {
     entry, loading, title, hearts,
     loadEntry,
     onTitleChange, onHeartTap, deleteEntry,
-  } = useEntryManager(date, onChanged, refreshKey);
-  const { uploading, uploadStatus, pickFromGallery, pasteFromClipboard } = usePhotoUpload();
+  } = useEntryManager(date, onChanged);
+  const { uploading, uploadStatus, smartPick } = usePhotoUpload();
 
   const uploadCtx: UploadContext = {
     date, entry, coupleId, title, notes: "",
@@ -82,22 +79,9 @@ export function DayDetailContent({ date, onChanged, readOnly, refreshKey }: Prop
               <Text style={[styles.statusText, { color: colors.textSecondary }]}>{uploadStatus}</Text>
             </View>
           ) : (
-            <View style={styles.actionRow}>
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={() => pickFromGallery(uploadCtx)}>
-                <Ionicons name="images-outline" size={18} color={colors.accent} />
-                <Text style={[styles.actionButtonText, { color: colors.accent }]}>Galería</Text>
-              </TouchableOpacity>
-              {Platform.OS === "ios" && (
-                <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={() => pasteFromClipboard(uploadCtx)}>
-                  <Ionicons name="clipboard-outline" size={18} color={colors.accent} />
-                  <Text style={[styles.actionButtonText, { color: colors.accent }]}>Pegar</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={deleteEntry}>
-                <Ionicons name="trash-outline" size={18} color={SEMANTIC_COLORS.DANGER} />
-                <Text style={[styles.actionButtonText, { color: SEMANTIC_COLORS.DANGER }]}>Borrar</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity style={styles.deleteButton} onPress={deleteEntry}>
+              <Ionicons name="trash-outline" size={20} color={colors.accent} />
+            </TouchableOpacity>
           )}
         </View>
       ) : readOnly ? (
@@ -114,24 +98,14 @@ export function DayDetailContent({ date, onChanged, readOnly, refreshKey }: Prop
               <Text style={styles.uploadStatusText}>{uploadStatus}</Text>
             </View>
           ) : (
-            <>
-              <TouchableOpacity
-                style={[styles.uploadArea, { borderColor: colors.border, backgroundColor: colors.background }]}
-                onPress={() => pickFromGallery(uploadCtx)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.uploadIcon, { color: colors.accent }]}>+</Text>
-                <Text style={[styles.uploadText, { color: colors.textSecondary }]}>Elegir de galería</Text>
-              </TouchableOpacity>
-
-              {Platform.OS === "ios" && (
-                <GradientButton
-                  label="Pegar foto"
-                  icon={<Ionicons name="heart" size={18} color="#FFFFFF" />}
-                  onPress={() => pasteFromClipboard(uploadCtx)}
-                />
-              )}
-            </>
+            <TouchableOpacity
+              style={[styles.uploadArea, { borderColor: colors.border, backgroundColor: colors.background }]}
+              onPress={() => smartPick(uploadCtx)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.uploadIcon, { color: colors.accent }]}>+</Text>
+              <Text style={[styles.uploadText, { color: colors.textSecondary }]}>Agregar foto</Text>
+            </TouchableOpacity>
           )}
         </View>
       )}
@@ -194,23 +168,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  actionRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
+  deleteButton: {
     marginTop: spacing.md,
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
+    padding: spacing.sm,
   },
   uploadingRow: {
     flexDirection: "row",

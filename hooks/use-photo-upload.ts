@@ -123,5 +123,32 @@ export function usePhotoUpload() {
     uploadPhoto(base64, ctx);
   }
 
-  return { uploading, uploadStatus, uploadPhoto, pickFromGallery, pasteFromClipboard };
+  async function smartPick(ctx: UploadContext) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS === "ios") {
+      const hasImage = await Clipboard.hasImageAsync();
+      if (hasImage) {
+        const clipboardImage = await Clipboard.getImageAsync({ format: "png" });
+        if (clipboardImage?.data) {
+          const raw = clipboardImage.data;
+          const base64 = raw.includes(",") ? raw : `data:image/png;base64,${raw}`;
+          uploadPhoto(base64, ctx);
+          return;
+        }
+      }
+    }
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permiso necesario", "Necesitamos acceso a tus fotos");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: IMAGE.COMPRESS_QUALITY,
+    });
+    if (result.canceled) return;
+    uploadPhoto(result.assets[0].uri, ctx);
+  }
+
+  return { uploading, uploadStatus, uploadPhoto, pickFromGallery, pasteFromClipboard, smartPick };
 }

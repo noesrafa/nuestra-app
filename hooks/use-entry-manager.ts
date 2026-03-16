@@ -1,33 +1,23 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
-import {
-  useSharedValue,
-  useAnimatedStyle,
-  withSequence,
-  withSpring,
-} from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { DB, APP } from "@/lib/constants";
 import { formatDisplayDate } from "@/lib/utils";
 import { resolvePhotoUrl } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
 
-export function useEntryManager(date: string, onChanged?: () => void, refreshKey?: number) {
+export function useEntryManager(date: string, onChanged?: () => void) {
   const [entry, setEntry] = useState<Entry | null>(null);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState(formatDisplayDate(date));
   const [notes, setNotes] = useState("");
   const [hearts, setHearts] = useState(0);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const photoScale = useSharedValue(1);
-
-  const animatedPhotoStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: photoScale.value }],
-  }));
+  const isFirstLoad = useRef(true);
 
   const loadEntry = useCallback(async () => {
-    setLoading(true);
+    if (isFirstLoad.current) setLoading(true);
     const { data } = await supabase
       .from(DB.TABLES.ENTRIES)
       .select(DB.SELECTS.ENTRY_FULL)
@@ -49,11 +39,31 @@ export function useEntryManager(date: string, onChanged?: () => void, refreshKey
       setHearts(0);
     }
     setLoading(false);
-  }, [date, refreshKey]);
+    isFirstLoad.current = false;
+  }, [date]);
 
   useEffect(() => {
     loadEntry();
   }, [loadEntry]);
+
+  // Realtime: reload entry when it changes in DB
+  useEffect(() => {
+    const channel = supabase
+      .channel(`entry-${date}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: DB.TABLES.ENTRIES },
+        (payload) => {
+          const row = (payload.new as Record<string, unknown>) ?? (payload.old as Record<string, unknown>);
+          if (row?.date === date) loadEntry();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [date, loadEntry]);
 
   function debounceSave(updates: Record<string, unknown>) {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -80,10 +90,6 @@ export function useEntryManager(date: string, onChanged?: () => void, refreshKey
 
   async function onHeartTap() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    photoScale.value = withSequence(
-      withSpring(1.05, { damping: 4, stiffness: 300 }),
-      withSpring(1, { damping: 6, stiffness: 200 })
-    );
     const newHearts = hearts + 1;
     setHearts(newHearts);
     if (entry) {
@@ -91,7 +97,6 @@ export function useEntryManager(date: string, onChanged?: () => void, refreshKey
         .from(DB.TABLES.ENTRIES)
         .update({ hearts: newHearts })
         .eq("id", entry.id);
-      onChanged?.();
     }
   }
 
@@ -121,7 +126,6 @@ export function useEntryManager(date: string, onChanged?: () => void, refreshKey
     title,
     notes,
     hearts,
-    animatedPhotoStyle,
     loadEntry,
     onTitleChange,
     onNotesChange,
