@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { spacing } from "@/constants/theme";
-import { formatDisplayDate } from "@/lib/utils";
+import { formatDisplayDate, getPhotoPrompt } from "@/lib/utils";
 import { useCouple } from "@/hooks/use-couple";
 import { useTheme } from "@/hooks/use-theme";
 import { useEntryManager } from "@/hooks/use-entry-manager";
@@ -137,7 +137,7 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
         </View>
       ) : readOnly ? (
         <View style={styles.emptyContainer}>
-          <Text style={[styles.uploadText, { color: colors.textSecondary, textAlign: "center", paddingVertical: spacing.xl }]}>
+          <Text style={[styles.promptHint, { color: colors.textSecondary, paddingVertical: spacing.xl }]}>
             Sin foto para este día
           </Text>
           {receivedLetter && (
@@ -156,12 +156,24 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
           ) : (
             <>
               <TouchableOpacity
-                style={[styles.uploadArea, { borderColor: colors.border, backgroundColor: colors.background }]}
+                style={styles.promptArea}
                 onPress={() => smartPick(uploadCtx)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.uploadIcon, { color: colors.accent }]}>+</Text>
-                <Text style={[styles.uploadText, { color: colors.textSecondary }]}>Agregar foto</Text>
+                {/* Empty polaroid placeholder */}
+                <View style={[styles.emptyPolaroid, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}>
+                  <View style={[styles.emptyPhotoSlot, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }]}>
+                    <Ionicons name="camera-outline" size={28} color={colors.accent} style={{ opacity: 0.25 }} />
+                  </View>
+                  <View style={styles.polaroidCaption}>
+                    <Text style={[styles.promptText, { color: isDark ? colors.text : "#2D2D2D" }]} numberOfLines={1}>
+                      {getPhotoPrompt(date)} <Ionicons name="heart" size={13} color="#FFFFFF" />
+                    </Text>
+                    <Text style={[styles.promptHint, { color: isDark ? colors.textSecondary : "#999" }]}>
+                      Toca para agregar foto
+                    </Text>
+                  </View>
+                </View>
               </TouchableOpacity>
 
               {renderActions()}
@@ -254,13 +266,42 @@ const styles = StyleSheet.create({
   emptyContainer: {
     gap: spacing.md,
   },
-  uploadArea: {
-    height: 200,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderStyle: "dashed",
+  promptArea: {
     alignItems: "center",
     justifyContent: "center",
+    gap: spacing.sm,
+  },
+  emptyPolaroid: {
+    padding: 8,
+    paddingBottom: 12,
+    borderRadius: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    transform: [{ rotate: "-3deg" }],
+  },
+  emptyPhotoSlot: {
+    width: 200,
+    height: 220,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  polaroidCaption: {
+    alignItems: "center",
+    paddingTop: 8,
+    paddingBottom: 4,
+    gap: 2,
+  },
+  promptText: {
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  promptHint: {
+    fontSize: 11,
+    textAlign: "center",
   },
   uploadingCol: {
     alignItems: "center",
@@ -269,13 +310,5 @@ const styles = StyleSheet.create({
   },
   uploadStatusText: {
     fontSize: 14,
-  },
-  uploadIcon: {
-    fontSize: 48,
-    fontWeight: "300",
-    marginBottom: spacing.sm,
-  },
-  uploadText: {
-    fontSize: 16,
   },
 });

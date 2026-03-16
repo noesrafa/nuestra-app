@@ -1,6 +1,8 @@
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
+import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from "react-native-reanimated";
+import { useEffect } from "react";
 import { spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { getDaysInMonth, formatDate } from "@/lib/utils";
@@ -29,13 +31,36 @@ type Props = {
   year: number;
   month: number;
   entries: Map<string, { photo_url: string | null }>;
+  unreadLetterDates?: Set<string>;
   isActive: boolean;
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onDayPress: (date: string) => void;
 };
 
-export function CalendarGrid({ year, month, entries, isActive, onPrevMonth, onNextMonth, onDayPress }: Props) {
+function PulsingDay({ day, color }: { day: number; color: string }) {
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withTiming(0.3, { duration: 800, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true
+    );
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.Text style={[styles.dayNumber, styles.dayNumberToday, { color }, animStyle]}>
+      {day}
+    </Animated.Text>
+  );
+}
+
+export function CalendarGrid({ year, month, entries, unreadLetterDates, isActive, onPrevMonth, onNextMonth, onDayPress }: Props) {
   const { colors } = useTheme();
   const today = new Date();
   const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
@@ -94,6 +119,7 @@ export function CalendarGrid({ year, month, entries, isActive, onPrevMonth, onNe
             const isToday = dateStr === todayStr;
             const entryData = entries.get(dateStr);
             const photoUrl = entryData?.photo_url;
+            const hasUnreadLetter = unreadLetterDates?.has(dateStr) ?? false;
 
             return (
               <TouchableOpacity
@@ -102,9 +128,13 @@ export function CalendarGrid({ year, month, entries, isActive, onPrevMonth, onNe
                 onPress={() => onDayPress(dateStr)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.dayNumber, { color: colors.accent, opacity: isToday ? 1 : 0.4 }, isToday && styles.dayNumberToday]}>
-                  {day}
-                </Text>
+                {hasUnreadLetter ? (
+                  <PulsingDay day={day} color={colors.accent} />
+                ) : (
+                  <Text style={[styles.dayNumber, { color: colors.accent, opacity: isToday ? 1 : 0.4 }, isToday && styles.dayNumberToday]}>
+                    {day}
+                  </Text>
+                )}
                 <Image
                   source={photoUrl ? { uri: photoUrl } : MASKS[((day * 31 + month * 97 + year * 53) * 2654435761 >>> 0) % MASKS.length]}
                   style={styles.photo}

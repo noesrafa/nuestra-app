@@ -27,28 +27,56 @@ export function LetterReveal({ letter, onRead }: Props) {
   const [open, setOpen] = useState(false);
   const isUnread = !letter.read_at;
 
-  const bounce = useRef(new Animated.Value(1)).current;
+  const bounceY = useRef(new Animated.Value(0)).current;
+  const heartOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!isUnread) return;
+
+    const heartBlink = Animated.loop(
+      Animated.sequence([
+        Animated.timing(heartOpacity, { toValue: 0.2, duration: 400, useNativeDriver: true }),
+        Animated.timing(heartOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      ])
+    );
+    heartBlink.start();
+    return () => heartBlink.stop();
+  }, [isUnread, heartOpacity]);
 
   useEffect(() => {
     if (!isUnread) return;
 
     const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(bounce, {
-          toValue: 1.15,
-          duration: 600,
+        Animated.delay(2500),
+        // First jump up
+        Animated.timing(bounceY, {
+          toValue: -8,
+          duration: 120,
           useNativeDriver: true,
         }),
-        Animated.timing(bounce, {
-          toValue: 1,
-          duration: 600,
+        Animated.timing(bounceY, {
+          toValue: 0,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+        Animated.delay(80),
+        // Second smaller jump
+        Animated.timing(bounceY, {
+          toValue: -5,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceY, {
+          toValue: 0,
+          duration: 100,
           useNativeDriver: true,
         }),
       ])
     );
     animation.start();
     return () => animation.stop();
-  }, [isUnread, bounce]);
+  }, [isUnread, bounceY]);
 
   // Single progress value drives the whole animation
   const progress = useRef(new Animated.Value(0)).current;
@@ -115,11 +143,15 @@ export function LetterReveal({ letter, onRead }: Props) {
         <Animated.View
           style={[
             styles.giftButton,
-            { backgroundColor: colors.accentLight, transform: [{ scale: bounce }] },
+            { backgroundColor: colors.accentLight, transform: [{ translateY: bounceY }] },
           ]}
         >
           <Ionicons name="gift" size={22} color={colors.accent} />
-          {isUnread && <View style={[styles.unreadDot, { backgroundColor: colors.accent }]} />}
+          {isUnread && (
+            <Animated.View style={[styles.unreadBadge, { backgroundColor: colors.accent, opacity: heartOpacity }]}>
+              <Ionicons name="heart" size={7} color="#FFFFFF" />
+            </Animated.View>
+          )}
         </Animated.View>
       </TouchableOpacity>
 
@@ -189,13 +221,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  unreadDot: {
+  unreadBadge: {
     position: "absolute",
-    top: 2,
-    right: 2,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    top: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
   },
   overlay: {
     flex: 1,

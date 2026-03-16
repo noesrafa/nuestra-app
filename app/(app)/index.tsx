@@ -43,6 +43,7 @@ export default function CalendarScreen() {
   const [totalDays, setTotalDays] = useState(0);
   const [selectedDate, setSelectedDate] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [unreadLetterDates, setUnreadLetterDates] = useState<Set<string>>(new Set());
 
   const shareDrawerRef = useRef<BottomSheet>(null);
   const dayDrawerRef = useRef<BottomSheet>(null);
@@ -75,11 +76,28 @@ export default function CalendarScreen() {
     setTotalDays(count ?? 0);
   }
 
+  async function loadUnreadLetters() {
+    if (!user) return;
+    const startDate = formatDate(year, month, 1);
+    const endDate = formatDate(year, month, getDaysInMonth(year, month));
+
+    const { data } = await supabase
+      .from(DB.TABLES.LETTERS)
+      .select("date")
+      .gte("date", startDate)
+      .lte("date", endDate)
+      .neq("from_user", user.id)
+      .is("read_at", null);
+
+    setUnreadLetterDates(new Set(data?.map((l: { date: string }) => l.date) ?? []));
+  }
+
   useFocusEffect(
     useCallback(() => {
       loadEntries();
       loadTotalDays();
-    }, [year, month])
+      loadUnreadLetters();
+    }, [year, month, user?.id])
   );
 
   // Realtime: one subscription per table, all in the parent
@@ -87,6 +105,7 @@ export default function CalendarScreen() {
     loadEntries();
     loadTotalDays();
   });
+  useRealtime(DB.TABLES.LETTERS, loadUnreadLetters);
   useRealtime(DB.TABLES.COUPLES, () => {
     refetchCouple();
     refetchSpace();
@@ -122,7 +141,7 @@ export default function CalendarScreen() {
 
   async function onRefresh() {
     setRefreshing(true);
-    await Promise.all([loadEntries(), loadTotalDays()]);
+    await Promise.all([loadEntries(), loadTotalDays(), loadUnreadLetters()]);
     setRefreshing(false);
   }
 
@@ -152,6 +171,7 @@ export default function CalendarScreen() {
           year={year}
           month={month}
           entries={entries}
+          unreadLetterDates={unreadLetterDates}
           isActive={isActive}
           onPrevMonth={prevMonth}
           onNextMonth={nextMonth}
