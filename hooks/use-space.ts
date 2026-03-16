@@ -1,16 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useId } from "react";
+import { AppState } from "react-native";
 import { supabase } from "@/lib/supabase";
-
-type Space = {
-  id: string;
-  couple_id: string;
-  status: "active" | "paused" | "pending_delete" | "deleted";
-  paused_at: string | null;
-  paused_by: string | null;
-  delete_requested_at: string | null;
-  delete_requested_by: string | null;
-  created_at: string;
-};
+import { DB, APP } from "@/lib/constants";
+import type { Space } from "@/lib/types";
 
 export function useSpace() {
   const [space, setSpace] = useState<Space | null>(null);
@@ -18,7 +10,7 @@ export function useSpace() {
 
   const fetch = useCallback(async () => {
     const { data } = await supabase
-      .from("nuestra_spaces")
+      .from(DB.TABLES.SPACES)
       .select("*")
       .order("created_at", { ascending: false })
       .limit(1)
@@ -28,24 +20,41 @@ export function useSpace() {
     setLoading(false);
   }, []);
 
+  const channelId = useId();
+
   useEffect(() => {
     fetch();
 
-    const channel = supabase
-      .channel("space-realtime")
+    // Listen for space changes
+    const spaceChannel = supabase
+      .channel(`space-realtime-${channelId}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "nuestra_spaces",
-        },
+        { event: "*", schema: "public", table: DB.TABLES.SPACES },
         () => fetch()
       )
       .subscribe();
 
+    // Also listen for couple changes — when a couple is unlinked/deleted,
+    // RLS blocks the space realtime subscription, so we refetch here
+    const coupleChannel = supabase
+      .channel(`space-couple-sync-${channelId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: DB.TABLES.COUPLES },
+        () => fetch()
+      )
+      .subscribe();
+
+    // Refetch on foreground (catches changes hidden by RLS)
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") fetch();
+    });
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(spaceChannel);
+      supabase.removeChannel(coupleChannel);
+      subscription.remove();
     };
   }, [fetch]);
 
@@ -56,7 +65,7 @@ export function useSpace() {
 
   const canFinalizeDelete =
     status === "pending_delete" && deleteRequestedAt
-      ? new Date().getTime() - deleteRequestedAt.getTime() >= 24 * 60 * 60 * 1000
+      ? new Date().getTime() - deleteRequestedAt.getTime() >= APP.DELETION_WINDOW_MS
       : false;
 
   return {

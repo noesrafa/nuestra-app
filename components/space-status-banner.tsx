@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { spacing } from "@/constants/theme";
+import { SEMANTIC_COLORS, APP } from "@/lib/constants";
 
 type Props = {
   status: "paused" | "pending_delete";
@@ -28,19 +29,19 @@ export function SpaceStatusBanner({ status, deleteRequestedAt }: Props) {
   if (status === "paused") {
     return (
       <View style={[styles.banner, styles.bannerPaused]}>
-        <Ionicons name="pause-circle" size={16} color="#92400E" />
+        <Ionicons name="pause-circle" size={16} color={SEMANTIC_COLORS.WARNING_TEXT} />
         <Text style={styles.textPaused}>Espacio en pausa</Text>
       </View>
     );
   }
 
   const remaining = deleteRequestedAt
-    ? deleteRequestedAt.getTime() + 24 * 60 * 60 * 1000 - now
+    ? deleteRequestedAt.getTime() + APP.DELETION_WINDOW_MS - now
     : 0;
 
   return (
     <View style={[styles.banner, styles.bannerDelete]}>
-      <Ionicons name="warning" size={16} color="#991B1B" />
+      <Ionicons name="warning" size={16} color={SEMANTIC_COLORS.ERROR_TEXT} />
       <Text style={styles.textDelete}>
         Eliminación pendiente — {remaining > 0 ? formatCountdown(remaining) : "Listo para eliminar"}
       </Text>
@@ -60,18 +61,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   bannerPaused: {
-    backgroundColor: "#FEF3C7",
+    backgroundColor: SEMANTIC_COLORS.WARNING_BG,
   },
   bannerDelete: {
-    backgroundColor: "#FEE2E2",
+    backgroundColor: SEMANTIC_COLORS.ERROR_BG,
   },
   textPaused: {
-    color: "#92400E",
+    color: SEMANTIC_COLORS.WARNING_TEXT,
     fontSize: 13,
     fontWeight: "600",
   },
   textDelete: {
-    color: "#991B1B",
+    color: SEMANTIC_COLORS.ERROR_TEXT,
     fontSize: 13,
     fontWeight: "600",
   },

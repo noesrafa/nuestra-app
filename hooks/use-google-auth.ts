@@ -2,8 +2,7 @@ import { useRef, useState } from "react";
 import { Alert } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { supabase } from "@/lib/supabase";
-
-const REDIRECT_URI = "nuestraapp://auth-callback";
+import { APP } from "@/lib/constants";
 
 export function useGoogleAuth() {
   const [loading, setLoading] = useState(false);
@@ -19,7 +18,7 @@ export function useGoogleAuth() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: REDIRECT_URI,
+          redirectTo: APP.AUTH_CALLBACK,
           skipBrowserRedirect: true,
           queryParams: {
             prompt: "select_account",
@@ -34,7 +33,7 @@ export function useGoogleAuth() {
 
       const result = await WebBrowser.openAuthSessionAsync(
         data.url,
-        REDIRECT_URI
+        APP.AUTH_CALLBACK
       );
 
       if (result.type === "success") {

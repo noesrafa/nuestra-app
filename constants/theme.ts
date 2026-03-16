@@ -50,3 +50,12 @@ export const spacing = {
   lg: 24,
   xl: 32,
 } as const;
+
+export const SEMANTIC_COLORS = {
+  DANGER: "#EF4444",
+  DANGER_TEXT: "#FF3B30",
+  WARNING_BG: "#FEF3C7",
+  WARNING_TEXT: "#92400E",
+  ERROR_BG: "#FEE2E2",
+  ERROR_TEXT: "#991B1B",
+} as const;

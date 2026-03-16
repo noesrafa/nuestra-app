@@ -8,6 +8,7 @@ App para parejas con calendario donde registran fotos juntos y llevan un diario 
 
 ## Stack
 - **Frontend**: Expo SDK 54, Expo Router v6, TypeScript, React Native 0.81
+- **Styling**: NativeWind v4 + Tailwind CSS 3.3.2 (className support on RN components)
 - **Backend**: Supabase self-hosted en `https://supabase.soyrafa.dev`
 - **Package manager**: bun (NO npm/yarn)
 - **Path alias**: `@/*` mapea a la raíz del proyecto
@@ -39,27 +40,60 @@ Las tablas específicas de esta app llevan prefijo `nuestra_`. La tabla `profile
 
 ## Estructura del proyecto
 ```
-app/                    # Expo Router - pantallas
-  _layout.tsx           # Root layout (auth guard)
-  (auth)/               # Login, signup
-  (app)/                # App autenticada (stack, sin tabs)
-    index.tsx           # Calendario mensual (HOME)
-    day/[date].tsx      # Detalle del día (ver/subir foto)
+app/                              # Expo Router - pantallas
+  _layout.tsx                     # Root layout (auth guard, imports global.css)
+  (auth)/login.tsx, signup.tsx    # Thin wrappers → AuthForm
+  (app)/index.tsx                 # Calendario, compone sub-componentes
+  (app)/day/[date].tsx            # Thin wrapper → DayDetailContent
+components/
+  auth/auth-form.tsx              # Formulario login/signup unificado (usa theme)
+  calendar/calendar-grid.tsx      # Grilla mensual, celdas, masks, fotos
+  calendar/calendar-header.tsx    # Share button, heart counter, avatar stack
+  drawers/couple-drawer-content.tsx # Compositor: CoupleCard + SpaceSection + ThemeSection + AccountSection
+  drawers/couple-card.tsx         # Vinculación de pareja (código, join)
+  drawers/space-section.tsx       # Pausar/reactivar/eliminar espacio
+  drawers/theme-section.tsx       # Selector de tema (auto/claro/dark)
+  drawers/account-section.tsx     # Perfil + cerrar sesión
+  drawers/share-drawer-content.tsx  # Placeholder compartir
+  ui/avatar-stack.tsx             # Avatares superpuestos con corazón (small/large)
+  ui/card-row.tsx                 # Fila estilo settings (icon + text + trailing)
+  ui/gradient-button.tsx          # Botón con LinearGradient
+  day-detail-content.tsx          # Vista/edición de entry (canónica)
+  drawer.tsx                      # BottomSheet wrapper
+  space-status-banner.tsx         # Banner pausa/eliminación
 constants/
-  theme.ts              # Colores y spacing
+  theme.ts                        # Paletas de colores, spacing, y SEMANTIC_COLORS
 lib/
-  supabase.ts           # Cliente Supabase (expo-secure-store)
+  types.ts                        # Tipos de dominio: Entry, Couple, Space, MemberProfile
+  utils.ts                        # Helpers puros: formatDisplayDate, getDaysInMonth, formatDate
+  storage.ts                      # Signed URL helpers: resolvePhotoUrl, resolvePhotoUrls
+  constants.ts                    # DB tables/selects, storage config, image config, app config
+  supabase.ts                     # Cliente Supabase (expo-secure-store)
 contexts/
-  theme-context.tsx     # ThemeProvider (light/dark/rosa palettes)
+  theme-context.tsx               # ThemeProvider (auto/dark/rosa)
 hooks/
-  use-auth.ts           # Hook de sesión
-  use-couple.ts         # Couple data + invite code
-  use-realtime-entries.ts # Supabase Realtime subscription for entries
-  use-theme.ts          # Theme hook (colors, isDark)
-  use-profile.ts        # User profile data
+  use-auth.ts                     # Sesión
+  use-couple.ts                   # Couple data + invite code
+  use-entry-manager.ts            # CRUD entry, debounce save, hearts, animation
+  use-google-auth.ts              # Google OAuth
+  use-photo-upload.ts             # Upload, gallery pick, clipboard paste
+  use-profile.ts                  # User profile
+  use-realtime-entries.ts         # Supabase Realtime subscription
+  use-space.ts                    # Space status (active/paused/pending_delete)
+  use-space-actions.ts            # Pause, unpause, delete space operations
+  use-theme.ts                    # Theme context hook
 supabase/
-  migrations/           # SQL migrations versionadas
+  migrations/                     # SQL migrations versionadas
 ```
+
+### Módulos clave en lib/
+- **`lib/types.ts`** — Tipos de dominio (`Entry`, `Couple`, `Space`, `MemberProfile`). Los hooks importan de aquí, no definen tipos inline.
+- **`lib/utils.ts`** — Funciones puras de formato y cálculo (`formatDisplayDate`, `getDaysInMonth`, `formatDate`). Usadas por hooks y componentes.
+- **`lib/storage.ts`** — Helpers para signed URLs de Supabase Storage (`resolvePhotoUrl` para una foto, `resolvePhotoUrls` para batch). Encapsula la lógica de "si no empieza con http, generar signed URL".
+- **`lib/constants.ts`** — Single source of truth para nombres de tablas (`DB.TABLES`), selects (`DB.SELECTS`), bucket de storage (`STORAGE`), parámetros de imagen (`IMAGE`), y configuración de la app (`APP`). Re-exporta `SEMANTIC_COLORS` desde `constants/theme.ts`.
+
+### Constantes de colores
+`constants/theme.ts` contiene las paletas (`rosa`, `dark`), el spacing, y `SEMANTIC_COLORS` (danger, warning, error). Es el único lugar donde se definen colores. `lib/constants.ts` re-exporta `SEMANTIC_COLORS` por conveniencia.
 
 ## Flujo de la app
 1. **Auth**: signup con email → profile se crea automático
@@ -80,13 +114,30 @@ bun run lint         # eslint (expo lint)
 ## Arquitectura clave
 
 ### Auth guard
-`app/_layout.tsx` usa `useProtectedRoute()` que redirige basado en segmentos de Expo Router: sin sesión va a `(auth)/login`, con sesión va a `(app)/`. Toda pantalla dentro de `(app)/` requiere autenticación.
+`app/_layout.tsx` redirige basado en segmentos de Expo Router: sin sesión va a `(auth)/login`, con sesión va a `(app)/`. Toda pantalla dentro de `(app)/` requiere autenticación.
 
 ### Theme system
-`ThemeProvider` en `contexts/theme-context.tsx` wrappea toda la app. Los componentes acceden a colores via `useTheme()` que retorna `{ colors, isDark, palette, setPalette }`. Hay 3 paletas definidas en `constants/theme.ts`: light, dark, rosa.
+`ThemeProvider` en `contexts/theme-context.tsx` wrappea toda la app. Los componentes acceden a colores via `useTheme()` que retorna `{ colors, isDark, theme, setTheme }`. Hay 2 paletas definidas en `constants/theme.ts`: rosa (light), dark. El modo "auto" sigue el sistema. NativeWind está configurado para className-based styling (gradual adoption).
 
 ### Realtime
-`useRealtimeEntries` se suscribe a cambios en `nuestra_entries` via Supabase Realtime y ejecuta un callback para refetch. Se usa en la pantalla Home para sync entre dispositivos de la pareja.
+`useRealtimeEntries` se suscribe a cambios en `nuestra_entries` via Supabase Realtime. Solo se usa en el parent (`index.tsx`) que pasa callbacks a los hijos. Evitar suscripciones duplicadas en componentes hijos.
+
+### Day detail architecture
+`DayDetailContent` es el componente canónico para ver/editar entries. Usa `useEntryManager` (estado + CRUD) y `usePhotoUpload` (subida + galería + clipboard). Se usa tanto en el drawer del Home como en la pantalla standalone `day/[date].tsx`.
+
+### Couple drawer architecture
+`CoupleDrawerContent` es un compositor que orquesta 4 sub-componentes independientes:
+- `CoupleCard` — vinculación/código de pareja
+- `SpaceSection` — pausar/eliminar/reactivar
+- `ThemeSection` — selector de tema
+- `AccountSection` — perfil + logout
+
+## Documentación Expo para consulta
+Cuando necesites consultar docs de Expo, usa estas URLs con WebFetch:
+- **Página específica en markdown**: agregar `/index.md` a cualquier URL de docs. Ej: `https://documentation.expo.dev/develop/development-builds/create-a-build/index.md`
+- **Índice general**: `https://documentation.expo.dev/llms.txt` (~94 kB, lista de todas las páginas)
+- **SDK v54 completo**: `https://documentation.expo.dev/llms-sdk-v54.0.0.txt`
+- **Docs completos**: `https://documentation.expo.dev/llms-full.txt` (~1.9 MB)
 
 ## Convenciones de código
 - Archivos en kebab-case: `my-component.tsx`
@@ -94,3 +145,7 @@ bun run lint         # eslint (expo lint)
 - Hooks empiezan con `use`: `use-auth.ts`
 - No usar default exports en componentes (sí en pantallas de Expo Router)
 - Preferir `function` sobre arrow functions para componentes
+- Tipos de dominio van en `lib/types.ts`, no inline en hooks
+- Funciones puras/helpers van en `lib/utils.ts`, no en hooks
+- Lógica de signed URLs va en `lib/storage.ts`
+- Colores solo se definen en `constants/theme.ts`, nunca hardcodeados

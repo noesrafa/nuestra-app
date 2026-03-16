@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { DB } from "@/lib/constants";
 
 type Profile = {
   display_name: string | null;
@@ -13,8 +14,8 @@ export function useProfile(userId: string | undefined) {
     if (!userId) return;
 
     supabase
-      .from("profiles")
-      .select("display_name, avatar_url")
+      .from(DB.TABLES.PROFILES)
+      .select(DB.SELECTS.PROFILE_DISPLAY)
       .eq("id", userId)
       .single()
       .then(({ data }) => {

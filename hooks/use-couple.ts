@@ -1,15 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useId } from "react";
 import { AppState } from "react-native";
 import { supabase } from "@/lib/supabase";
-
-type Couple = {
-  id: string;
-  user_a: string;
-  user_b: string | null;
-  invite_code: string;
-};
-
-type MemberProfile = { avatar_url: string | null };
+import { DB } from "@/lib/constants";
+import type { Couple, MemberProfile } from "@/lib/types";
 
 export function useCouple() {
   const [couple, setCouple] = useState<Couple | null>(null);
@@ -26,8 +19,8 @@ export function useCouple() {
     }
 
     const { data } = await supabase
-      .from("nuestra_couples")
-      .select("id, user_a, user_b, invite_code")
+      .from(DB.TABLES.COUPLES)
+      .select(DB.SELECTS.COUPLE_FULL)
       .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
       .maybeSingle();
 
@@ -36,11 +29,10 @@ export function useCouple() {
     if (data) {
       const ids = [data.user_a, data.user_b].filter(Boolean) as string[];
       const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, avatar_url")
+        .from(DB.TABLES.PROFILES)
+        .select(DB.SELECTS.PROFILE_AVATAR)
         .in("id", ids);
       const profileMap = new Map(profiles?.map((p: MemberProfile & { id: string }) => [p.id, p.avatar_url]) ?? []);
-      // Current user first, partner second
       const partnerId = data.user_a === user.id ? data.user_b : data.user_a;
       setAvatars([profileMap.get(user.id) ?? null, partnerId ? profileMap.get(partnerId) ?? null : null]);
     }
@@ -48,24 +40,20 @@ export function useCouple() {
     setLoading(false);
   }, []);
 
+  const channelId = useId();
+
   useEffect(() => {
     fetch();
 
-    // Realtime for couple changes (works when user CAN see the change)
     const channel = supabase
-      .channel("couple-realtime")
+      .channel(`couple-realtime-${channelId}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "nuestra_couples",
-        },
+        { event: "*", schema: "public", table: DB.TABLES.COUPLES },
         () => fetch()
       )
       .subscribe();
 
-    // Poll when app comes back to foreground (catches changes hidden by RLS)
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") fetch();
     });

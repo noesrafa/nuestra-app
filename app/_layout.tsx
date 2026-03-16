@@ -1,3 +1,5 @@
+import "../global.css";
+
 import { useEffect, useRef } from "react";
 import { View } from "react-native";
 import { Stack, useRouter, useSegments, SplashScreen } from "expo-router";
