@@ -30,7 +30,7 @@ export function SpaceSection({ onClose, onMutate }: Props) {
 
   return (
     <>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Espacio</Text>
+      <Text style={[styles.sectionTitle, { color: colors.accent }]}>Espacio</Text>
       <View style={[styles.card, { backgroundColor: colors.background }]}>
         {isActive && (
           <CardRow

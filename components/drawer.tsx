@@ -1,7 +1,9 @@
 import { useCallback, forwardRef, type ReactNode } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useTheme } from "@/hooks/use-theme";
+
+const MAX_DYNAMIC_HEIGHT = Dimensions.get("window").height * 0.85;
 
 type Props = {
   snapPoints?: string[];
@@ -30,13 +32,23 @@ export const Drawer = forwardRef<BottomSheet, Props>(
       <BottomSheet
         ref={ref}
         index={-1}
-        {...(dynamic ? { enableDynamicSizing: true } : { snapPoints })}
+        {...(dynamic
+          ? { enableDynamicSizing: true, maxDynamicContentSize: MAX_DYNAMIC_HEIGHT }
+          : { snapPoints })}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
         backgroundStyle={[styles.bg, { backgroundColor: bgColor }]}
         handleIndicatorStyle={[styles.handle, { backgroundColor: handleColor }]}
       >
-        {scrollable ? (
+        {dynamic ? (
+          <BottomSheetScrollView
+            contentContainerStyle={scrollable ? styles.scrollContent : styles.content}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {children}
+          </BottomSheetScrollView>
+        ) : scrollable ? (
           <BottomSheetScrollView
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
@@ -71,5 +83,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 24,
     paddingBottom: 40,
+    paddingTop: 16,
   },
 });

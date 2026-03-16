@@ -18,10 +18,10 @@ export function CardRow({ icon, iconColor, text, textColor, subtext, loading, on
 
   const content = (
     <View style={styles.row}>
-      <Ionicons name={icon} size={20} color={iconColor ?? colors.textSecondary} />
+      <Ionicons name={icon} size={20} color={iconColor ?? colors.accent} />
       <View style={subtext ? { flex: 1 } : undefined}>
-        <Text style={[styles.text, { color: textColor ?? colors.text }]}>{text}</Text>
-        {subtext && <Text style={[styles.subtext, { color: colors.textSecondary }]}>{subtext}</Text>}
+        <Text style={[styles.text, { color: textColor ?? colors.accent }]}>{text}</Text>
+        {subtext && <Text style={[styles.subtext, { color: colors.accent, opacity: 0.6 }]}>{subtext}</Text>}
       </View>
       {loading && <ActivityIndicator color={iconColor ?? colors.accent} size="small" style={styles.trailing} />}
     </View>

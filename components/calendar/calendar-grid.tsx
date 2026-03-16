@@ -69,17 +69,17 @@ export function CalendarGrid({ year, month, entries, isActive, onPrevMonth, onNe
     <>
       <View style={styles.monthNav}>
         <TouchableOpacity onPress={handlePrev} style={styles.navButton}>
-          <Text style={[styles.navText, { color: colors.text }]}>{"\u2039"}</Text>
+          <Text style={[styles.navText, { color: colors.accent }]}>{"\u2039"}</Text>
         </TouchableOpacity>
-        <Text style={[styles.monthText, { color: colors.text }]}>{formatMonth(year, month)}</Text>
+        <Text style={[styles.monthText, { color: colors.accent }]}>{formatMonth(year, month)}</Text>
         <TouchableOpacity onPress={handleNext} style={styles.navButton}>
-          <Text style={[styles.navText, { color: colors.text }]}>{"\u203A"}</Text>
+          <Text style={[styles.navText, { color: colors.accent }]}>{"\u203A"}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.weekHeader}>
         {DAYS.map((d, i) => (
-          <Text key={i} style={[styles.weekDay, { color: colors.textSecondary }]}>{d}</Text>
+          <Text key={i} style={[styles.weekDay, { color: colors.accent, opacity: 0.6 }]}>{d}</Text>
         ))}
       </View>
 
@@ -102,7 +102,7 @@ export function CalendarGrid({ year, month, entries, isActive, onPrevMonth, onNe
                 onPress={() => onDayPress(dateStr)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.dayNumber, { color: colors.textSecondary }, isToday && [styles.dayNumberToday, { color: colors.accent }]]}>
+                <Text style={[styles.dayNumber, { color: colors.accent, opacity: isToday ? 1 : 0.4 }, isToday && styles.dayNumberToday]}>
                   {day}
                 </Text>
                 <Image
@@ -111,7 +111,7 @@ export function CalendarGrid({ year, month, entries, isActive, onPrevMonth, onNe
                   contentFit="contain"
                   transition={photoUrl ? 200 : 0}
                 />
-                {isActive && <Text style={[styles.plusIcon, { color: colors.textSecondary }]}>+</Text>}
+                {isActive && <Text style={[styles.plusIcon, { color: colors.accent, opacity: 0.6 }]}>+</Text>}
               </TouchableOpacity>
             );
           })}

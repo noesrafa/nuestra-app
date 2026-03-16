@@ -21,7 +21,7 @@ export function ThemeSection() {
 
   return (
     <>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Apariencia</Text>
+      <Text style={[styles.sectionTitle, { color: colors.accent }]}>Apariencia</Text>
       <View style={[styles.card, { backgroundColor: colors.background }]}>
         <View style={[styles.themeRow, { backgroundColor: colors.background }]}>
           {THEME_OPTIONS.map((opt) => {
@@ -36,8 +36,8 @@ export function ThemeSection() {
                 onPress={() => selectTheme(opt.key)}
                 activeOpacity={0.7}
               >
-                <Ionicons name={opt.icon as keyof typeof Ionicons.glyphMap} size={15} color={active ? colors.accent : colors.textSecondary} />
-                <Text style={[styles.themeButtonText, { color: active ? colors.text : colors.textSecondary }]}>{opt.label}</Text>
+                <Ionicons name={opt.icon as keyof typeof Ionicons.glyphMap} size={15} color={colors.accent} style={{ opacity: active ? 1 : 0.5 }} />
+                <Text style={[styles.themeButtonText, { color: colors.accent, opacity: active ? 1 : 0.5 }]}>{opt.label}</Text>
               </TouchableOpacity>
             );
           })}

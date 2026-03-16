@@ -158,11 +158,11 @@ export default function CalendarScreen() {
         <ShareDrawerContent />
       </Drawer>
 
-      <Drawer ref={dayDrawerRef} snapPoints={["85%"]} scrollable>
+      <Drawer ref={dayDrawerRef} scrollable>
         {selectedDate ? <DayDetailContent date={selectedDate} onChanged={onRefresh} readOnly={spaceReadOnly} /> : null}
       </Drawer>
 
-      <Drawer ref={coupleDrawerRef} snapPoints={["75%"]} scrollable>
+      <Drawer ref={coupleDrawerRef} scrollable>
         <CoupleDrawerContent
           onClose={() => coupleDrawerRef.current?.close()}
           onMutate={() => { refetchCouple(); refetchSpace(); loadEntries(); loadTotalDays(); }}

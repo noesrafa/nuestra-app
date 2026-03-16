@@ -10,7 +10,8 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import Animated from "react-native-reanimated";
-import { spacing } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { spacing, SEMANTIC_COLORS } from "@/constants/theme";
 import { formatDisplayDate } from "@/lib/utils";
 import { useCouple } from "@/hooks/use-couple";
 import { useTheme } from "@/hooks/use-theme";
@@ -28,14 +29,14 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
   const { colors } = useTheme();
   const { coupleId } = useCouple();
   const {
-    entry, loading, title, notes, hearts,
+    entry, loading, title, hearts,
     animatedPhotoStyle, loadEntry,
-    onTitleChange, onNotesChange, onHeartTap, deleteEntry,
+    onTitleChange, onHeartTap, deleteEntry,
   } = useEntryManager(date, onChanged);
   const { uploading, uploadStatus, pickFromGallery, pasteFromClipboard } = usePhotoUpload();
 
   const uploadCtx: UploadContext = {
-    date, entry, coupleId, title, notes,
+    date, entry, coupleId, title, notes: "",
     onSuccess: () => { loadEntry(); onChanged?.(); },
   };
 
@@ -86,16 +87,19 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
             </View>
           ) : (
             <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.actionButton} onPress={() => pickFromGallery(uploadCtx)}>
+              <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={() => pickFromGallery(uploadCtx)}>
+                <Ionicons name="images-outline" size={18} color={colors.accent} />
                 <Text style={[styles.actionButtonText, { color: colors.accent }]}>Galería</Text>
               </TouchableOpacity>
               {Platform.OS === "ios" && (
-                <TouchableOpacity style={styles.actionButton} onPress={() => pasteFromClipboard(uploadCtx)}>
+                <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={() => pasteFromClipboard(uploadCtx)}>
+                  <Ionicons name="clipboard-outline" size={18} color={colors.accent} />
                   <Text style={[styles.actionButtonText, { color: colors.accent }]}>Pegar</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity style={styles.actionButton} onPress={deleteEntry}>
-                <Text style={styles.actionButtonTextDanger}>Borrar</Text>
+              <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.border }]} onPress={deleteEntry}>
+                <Ionicons name="trash-outline" size={18} color={SEMANTIC_COLORS.DANGER} />
+                <Text style={[styles.actionButtonText, { color: SEMANTIC_COLORS.DANGER }]}>Borrar</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -127,7 +131,7 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
               {Platform.OS === "ios" && (
                 <GradientButton
                   label="Pegar foto"
-                  icon={<Image source={require("../assets/icons-3d/heart.png")} style={{ width: 20, height: 20 }} contentFit="contain" />}
+                  icon={<Ionicons name="heart" size={18} color="#FFFFFF" />}
                   onPress={() => pasteFromClipboard(uploadCtx)}
                 />
               )}
@@ -136,17 +140,6 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
         </View>
       )}
 
-      <TextInput
-        style={[styles.notesInput, { color: colors.text }]}
-        value={notes}
-        onChangeText={onNotesChange}
-        placeholder={readOnly ? "" : "Agregar una nota..."}
-        placeholderTextColor={colors.textSecondary}
-        multiline
-        maxLength={500}
-        textAlignVertical="top"
-        editable={!readOnly}
-      />
     </>
   );
 }
@@ -190,21 +183,21 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: "row",
-    gap: spacing.lg,
+    gap: spacing.sm,
     marginTop: spacing.md,
   },
   actionButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   actionButtonText: {
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  actionButtonTextDanger: {
-    color: "#EF4444",
-    fontSize: 15,
-    fontWeight: "500",
+    fontSize: 14,
+    fontWeight: "600",
   },
   uploadingRow: {
     flexDirection: "row",
@@ -241,12 +234,5 @@ const styles = StyleSheet.create({
   },
   uploadText: {
     fontSize: 16,
-  },
-  notesInput: {
-    fontSize: 15,
-    marginTop: spacing.lg,
-    paddingVertical: spacing.md,
-    minHeight: 80,
-    lineHeight: 22,
   },
 });

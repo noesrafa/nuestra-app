@@ -16,8 +16,8 @@ export type ColorPalette = typeof colors;
 
 export const palettes: Record<"rosa" | "dark", ColorPalette> = {
   rosa: {
-    background: "#FDF6F7",
-    surface: "#FFFFFF",
+    background: "#F5E6EA",
+    surface: "#FDF6F7",
     accent: "#8B2252",
     accentLight: "#E8C4D0",
     text: "#2D2D2D",
@@ -29,13 +29,13 @@ export const palettes: Record<"rosa" | "dark", ColorPalette> = {
     gradientEnd: "#8B2252",
   },
   dark: {
-    background: "#121212",
-    surface: "#1E1E1E",
+    background: "#1A0A10",
+    surface: "#2A1520",
     accent: "#D4638A",
     accentLight: "#3D2030",
-    text: "#F0F0F0",
-    textSecondary: "#888888",
-    border: "#333333",
+    text: "#F0E4E8",
+    textSecondary: "#A07080",
+    border: "#3D2030",
     today: "#D4638A",
     hasPhoto: "#D4638A",
     gradientStart: "#D4638A",

@@ -39,22 +39,22 @@ export function CoupleDrawerContent({ onClose, onMutate }: Props) {
           <>
             {isActive && (
               <>
-                <Text style={{ fontSize: 22, fontWeight: "700", textAlign: "center", marginBottom: 4, color: colors.text }}>Vinculados</Text>
-                <Text style={{ fontSize: 14, textAlign: "center", lineHeight: 20, color: colors.textSecondary }}>Ya estan conectados como pareja</Text>
+                <Text style={{ fontSize: 22, fontWeight: "700", textAlign: "center", marginBottom: 4, color: colors.accent }}>Vinculados</Text>
+                <Text style={{ fontSize: 14, textAlign: "center", lineHeight: 20, color: colors.accent, opacity: 0.6 }}>Ya estan conectados como pareja</Text>
               </>
             )}
             {isPaused && (
               <>
-                <Text style={{ fontSize: 22, fontWeight: "700", textAlign: "center", marginBottom: 4, color: colors.text }}>Espacio en pausa</Text>
-                <Text style={{ fontSize: 14, textAlign: "center", lineHeight: 20, color: colors.textSecondary }}>
+                <Text style={{ fontSize: 22, fontWeight: "700", textAlign: "center", marginBottom: 4, color: colors.accent }}>Espacio en pausa</Text>
+                <Text style={{ fontSize: 14, textAlign: "center", lineHeight: 20, color: colors.accent, opacity: 0.6 }}>
                   {pausedBy === user?.id ? "Pausaste el espacio. Podés reactivarlo." : "Tu pareja pausó el espacio"}
                 </Text>
               </>
             )}
             {isPendingDelete && (
               <>
-                <Text style={{ fontSize: 22, fontWeight: "700", textAlign: "center", marginBottom: 4, color: colors.text }}>Eliminación pendiente</Text>
-                <Text style={{ fontSize: 14, textAlign: "center", lineHeight: 20, color: colors.textSecondary }}>
+                <Text style={{ fontSize: 22, fontWeight: "700", textAlign: "center", marginBottom: 4, color: colors.accent }}>Eliminación pendiente</Text>
+                <Text style={{ fontSize: 14, textAlign: "center", lineHeight: 20, color: colors.accent, opacity: 0.6 }}>
                   {deleteRequestedBy === user?.id
                     ? "Esperando confirmación de tu pareja o 24h"
                     : "Tu pareja quiere eliminar el espacio"}

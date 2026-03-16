@@ -22,12 +22,12 @@ export function CalendarHeader({ totalDays, isComplete, avatars, avatarUrl, onSh
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={onSharePress} style={styles.iconButton}>
-        <Ionicons name="share" size={24} color={colors.text} />
+        <Ionicons name="share" size={24} color={colors.accent} />
       </TouchableOpacity>
 
       <View style={styles.counterRow}>
-        <Ionicons name="heart" size={18} color={colors.text} />
-        <Text style={[styles.counterText, { color: colors.text }]}>{totalDays}</Text>
+        <Ionicons name="heart" size={18} color={colors.accent} />
+        <Text style={[styles.counterText, { color: colors.accent }]}>{totalDays}</Text>
       </View>
 
       <TouchableOpacity onPress={onCouplePress} style={styles.coupleButton}>

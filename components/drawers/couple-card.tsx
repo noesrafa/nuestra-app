@@ -69,10 +69,10 @@ export function CoupleCard({ isComplete, avatarUrl, inviteCode, avatarsSlot, sta
       {coupleMode === "join" ? (
         <>
           <Ionicons name="link" size={32} color={colors.accent} />
-          <Text style={[styles.title, { color: colors.text }]}>Unirse</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Ingresa el codigo que te compartieron</Text>
+          <Text style={[styles.title, { color: colors.accent }]}>Unirse</Text>
+          <Text style={[styles.subtitle, { color: colors.accent, opacity: 0.6 }]}>Ingresa el codigo que te compartieron</Text>
           <TextInput
-            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
+            style={[styles.input, { color: colors.accent, borderColor: colors.border, backgroundColor: colors.surface }]}
             value={joinCode}
             onChangeText={setJoinCode}
             placeholder="--------"
@@ -100,8 +100,8 @@ export function CoupleCard({ isComplete, avatarUrl, inviteCode, avatarsSlot, sta
               <Ionicons name="person" size={36} color={colors.accent} />
             </View>
           )}
-          <Text style={[styles.title, { color: colors.text }]}>Tu codigo de pareja</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Comparti este codigo para vincular calendarios</Text>
+          <Text style={[styles.title, { color: colors.accent }]}>Tu codigo de pareja</Text>
+          <Text style={[styles.subtitle, { color: colors.accent, opacity: 0.6 }]}>Comparti este codigo para vincular calendarios</Text>
           {inviteCode ? (
             <TouchableOpacity onPress={copyCode} activeOpacity={0.7} style={[styles.codeBox, { borderColor: colors.border }]}>
               <Text style={[styles.code, { color: colors.accent }]}>
@@ -112,7 +112,7 @@ export function CoupleCard({ isComplete, avatarUrl, inviteCode, avatarsSlot, sta
           ) : (
             <ActivityIndicator color={colors.accent} style={{ paddingVertical: 20 }} />
           )}
-          {codeCopied && <Text style={[styles.hint, { color: colors.textSecondary }]}>Enviaselo a tu pareja</Text>}
+          {codeCopied && <Text style={[styles.hint, { color: colors.accent, opacity: 0.6 }]}>Enviaselo a tu pareja</Text>}
           <GradientButton
             label="Tengo un codigo"
             icon={<Ionicons name="heart" size={18} color="#FFFFFF" />}
