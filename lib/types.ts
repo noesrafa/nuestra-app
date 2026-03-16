@@ -29,3 +29,13 @@ export type MemberProfile = {
   id: string;
   avatar_url: string | null;
 };
+
+export type Letter = {
+  id: string;
+  couple_id: string;
+  date: string;
+  from_user: string;
+  body: string;
+  read_at: string | null;
+  created_at: string;
+};

@@ -8,12 +8,17 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { spacing } from "@/constants/theme";
 import { formatDisplayDate } from "@/lib/utils";
 import { useCouple } from "@/hooks/use-couple";
 import { useTheme } from "@/hooks/use-theme";
 import { useEntryManager } from "@/hooks/use-entry-manager";
 import { usePhotoUpload, type UploadContext } from "@/hooks/use-photo-upload";
+import { useLetter } from "@/hooks/use-letter";
+import { LetterReveal } from "@/components/letter/letter-reveal";
+import { SentLetterView } from "@/components/letter/sent-letter-view";
 
 type Props = {
   date: string;
@@ -30,16 +35,71 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
     onTitleChange, onHeartTap, deleteEntry,
   } = useEntryManager(date, onChanged);
   const { uploading, uploadStatus, smartPick } = usePhotoUpload();
+  const { receivedLetter, sentLetter, markAsRead } = useLetter(date);
 
   const uploadCtx: UploadContext = {
     date, entry, coupleId, title, notes: "",
     onSuccess: () => { loadEntry(); onChanged?.(); },
   };
 
+  function openWriteLetter() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push(`/(app)/letter/${date}`);
+  }
+
   if (loading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator color={colors.accent} />
+      </View>
+    );
+  }
+
+  // Action buttons row: pencil (write) | heart | gift (read)
+  function renderActions() {
+    if (readOnly || uploading) {
+      if (uploading) {
+        return (
+          <View style={styles.uploadingRow}>
+            <ActivityIndicator color={colors.accent} size="small" />
+            <Text style={[styles.statusText, { color: colors.textSecondary }]}>{uploadStatus}</Text>
+          </View>
+        );
+      }
+      // readOnly: still show gift if there's a received letter
+      if (receivedLetter) {
+        return (
+          <View style={styles.actionsRow}>
+            <LetterReveal letter={receivedLetter} onRead={markAsRead} />
+          </View>
+        );
+      }
+      return null;
+    }
+
+    return (
+      <View style={styles.actionsRow}>
+        {sentLetter ? (
+          <SentLetterView letter={sentLetter} />
+        ) : (
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: colors.accentLight }]}
+            onPress={openWriteLetter}
+          >
+            <Ionicons name="pencil" size={20} color={colors.accent} />
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: colors.accentLight }]}
+          onPress={onHeartTap}
+        >
+          <Ionicons name="heart" size={22} color={colors.accent} />
+        </TouchableOpacity>
+
+        {receivedLetter && (
+          <LetterReveal letter={receivedLetter} onRead={markAsRead} />
+        )}
       </View>
     );
   }
@@ -73,22 +133,18 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
             </View>
           </Pressable>
 
-          {readOnly ? null : uploading ? (
-            <View style={styles.uploadingRow}>
-              <ActivityIndicator color={colors.accent} size="small" />
-              <Text style={[styles.statusText, { color: colors.textSecondary }]}>{uploadStatus}</Text>
-            </View>
-          ) : (
-            <TouchableOpacity style={[styles.heartButton, { backgroundColor: colors.accentLight }]} onPress={onHeartTap}>
-              <Ionicons name="heart" size={22} color={colors.accent} />
-            </TouchableOpacity>
-          )}
+          {renderActions()}
         </View>
       ) : readOnly ? (
         <View style={styles.emptyContainer}>
           <Text style={[styles.uploadText, { color: colors.textSecondary, textAlign: "center", paddingVertical: spacing.xl }]}>
             Sin foto para este día
           </Text>
+          {receivedLetter && (
+            <View style={styles.actionsRow}>
+              <LetterReveal letter={receivedLetter} onRead={markAsRead} />
+            </View>
+          )}
         </View>
       ) : (
         <View style={styles.emptyContainer}>
@@ -98,14 +154,18 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
               <Text style={styles.uploadStatusText}>{uploadStatus}</Text>
             </View>
           ) : (
-            <TouchableOpacity
-              style={[styles.uploadArea, { borderColor: colors.border, backgroundColor: colors.background }]}
-              onPress={() => smartPick(uploadCtx)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.uploadIcon, { color: colors.accent }]}>+</Text>
-              <Text style={[styles.uploadText, { color: colors.textSecondary }]}>Agregar foto</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={[styles.uploadArea, { borderColor: colors.border, backgroundColor: colors.background }]}
+                onPress={() => smartPick(uploadCtx)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.uploadIcon, { color: colors.accent }]}>+</Text>
+                <Text style={[styles.uploadText, { color: colors.textSecondary }]}>Agregar foto</Text>
+              </TouchableOpacity>
+
+              {renderActions()}
+            </>
           )}
         </View>
       )}
@@ -168,8 +228,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  heartButton: {
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.lg,
     marginTop: spacing.md,
+  },
+  actionButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
