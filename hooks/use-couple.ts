@@ -1,5 +1,4 @@
-import { useEffect, useState, useCallback, useId } from "react";
-import { AppState } from "react-native";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { DB } from "@/lib/constants";
 import type { Couple, MemberProfile } from "@/lib/types";
@@ -40,28 +39,8 @@ export function useCouple() {
     setLoading(false);
   }, []);
 
-  const channelId = useId();
-
   useEffect(() => {
     fetch();
-
-    const channel = supabase
-      .channel(`couple-realtime-${channelId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: DB.TABLES.COUPLES },
-        () => fetch()
-      )
-      .subscribe();
-
-    const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") fetch();
-    });
-
-    return () => {
-      supabase.removeChannel(channel);
-      subscription.remove();
-    };
   }, [fetch]);
 
   return {

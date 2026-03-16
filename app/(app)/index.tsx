@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { DB } from "@/lib/constants";
 import { getDaysInMonth, formatDate } from "@/lib/utils";
 import { resolvePhotoUrls } from "@/lib/storage";
-import { useRealtimeEntries } from "@/hooks/use-realtime-entries";
+import { useRealtime } from "@/hooks/use-realtime";
 import { useCouple } from "@/hooks/use-couple";
 import { useSpace } from "@/hooks/use-space";
 import { useAuth } from "@/hooks/use-auth";
@@ -82,11 +82,16 @@ export default function CalendarScreen() {
     }, [year, month])
   );
 
-  useRealtimeEntries(() => {
+  // Realtime: one subscription per table, all in the parent
+  useRealtime(DB.TABLES.ENTRIES, () => {
     loadEntries();
     loadTotalDays();
+  });
+  useRealtime(DB.TABLES.COUPLES, () => {
+    refetchCouple();
     refetchSpace();
   });
+  useRealtime(DB.TABLES.SPACES, refetchSpace);
 
   function prevMonth() {
     if (month === 0) { setMonth(11); setYear(year - 1); }

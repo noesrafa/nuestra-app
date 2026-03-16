@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { DB } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { useCouple } from "@/hooks/use-couple";
+import { useRealtime } from "@/hooks/use-realtime";
 import type { Letter } from "@/lib/types";
 
 export function useLetter(date: string) {
@@ -36,23 +37,7 @@ export function useLetter(date: string) {
     loadLetters();
   }, [loadLetters]);
 
-  // Realtime subscription for letters
-  useEffect(() => {
-    if (!coupleId) return;
-
-    const channel = supabase
-      .channel(`letters-${date}-${coupleId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: DB.TABLES.LETTERS },
-        () => loadLetters()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [date, coupleId, loadLetters]);
+  useRealtime(DB.TABLES.LETTERS, loadLetters);
 
   async function sendLetter(body: string) {
     if (!coupleId || !user) return false;

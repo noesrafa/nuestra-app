@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { DB, APP } from "@/lib/constants";
 import { formatDisplayDate } from "@/lib/utils";
 import { resolvePhotoUrl } from "@/lib/storage";
+import { useRealtime } from "@/hooks/use-realtime";
 import type { Entry } from "@/lib/types";
 
 export function useEntryManager(date: string, onChanged?: () => void) {
@@ -56,28 +57,7 @@ export function useEntryManager(date: string, onChanged?: () => void) {
     loadEntry();
   }, [loadEntry]);
 
-  // Realtime: reload entry when it changes in DB
-  useEffect(() => {
-    const channel = supabase
-      .channel(`entry-${date}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: DB.TABLES.ENTRIES },
-        (payload) => {
-          if (payload.eventType === "DELETE") {
-            loadEntry();
-            return;
-          }
-          const row = payload.new as Record<string, unknown>;
-          if (row?.date === date) loadEntry();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [date, loadEntry]);
+  useRealtime(DB.TABLES.ENTRIES, loadEntry);
 
   function debounceSave(updates: Record<string, unknown>) {
     if (saveTimer.current) clearTimeout(saveTimer.current);
