@@ -94,8 +94,6 @@ export function usePhotoUpload() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       quality: IMAGE.COMPRESS_QUALITY,
-      allowsEditing: true,
-      aspect: IMAGE.PICKER_ASPECT,
     });
 
     if (result.canceled) return;

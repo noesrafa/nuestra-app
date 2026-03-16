@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -9,7 +8,6 @@ import {
   Pressable,
 } from "react-native";
 import { Image } from "expo-image";
-import Animated from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { spacing, SEMANTIC_COLORS } from "@/constants/theme";
 import { formatDisplayDate } from "@/lib/utils";
@@ -23,16 +21,17 @@ type Props = {
   date: string;
   onChanged?: () => void;
   readOnly?: boolean;
+  refreshKey?: number;
 };
 
-export function DayDetailContent({ date, onChanged, readOnly }: Props) {
-  const { colors } = useTheme();
+export function DayDetailContent({ date, onChanged, readOnly, refreshKey }: Props) {
+  const { colors, isDark } = useTheme();
   const { coupleId } = useCouple();
   const {
     entry, loading, title, hearts,
-    animatedPhotoStyle, loadEntry,
+    loadEntry,
     onTitleChange, onHeartTap, deleteEntry,
-  } = useEntryManager(date, onChanged);
+  } = useEntryManager(date, onChanged, refreshKey);
   const { uploading, uploadStatus, pickFromGallery, pasteFromClipboard } = usePhotoUpload();
 
   const uploadCtx: UploadContext = {
@@ -50,35 +49,32 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
 
   return (
     <>
-      <TextInput
-        style={[styles.titleInput, { color: colors.text }]}
-        value={title}
-        onChangeText={onTitleChange}
-        placeholder={formatDisplayDate(date)}
-        placeholderTextColor={colors.textSecondary}
-        maxLength={100}
-        editable={!readOnly}
-      />
+      <Text style={[styles.dateLabel, { color: colors.accent }]}>
+        {formatDisplayDate(date)}
+      </Text>
+      <View style={styles.dividerWrap}>
+        <View style={[styles.divider, { backgroundColor: colors.accent }]} />
+      </View>
 
       {entry?.photo_url ? (
         <View style={styles.photoContainer}>
-          <Pressable onPress={readOnly ? undefined : onHeartTap} style={styles.photoPress}>
-            <Animated.View style={[styles.photoWrap, animatedPhotoStyle]}>
-              <Image
-                source={{ uri: entry.photo_url }}
-                style={styles.photo}
-                contentFit="contain"
-                transition={300}
-              />
-            </Animated.View>
-          </Pressable>
-
           {hearts > 0 && (
             <View style={styles.heartsRow}>
-              <Image source={require("../assets/icons-3d/heart.png")} style={{ width: 18, height: 18 }} contentFit="contain" />
+              <Ionicons name="heart" size={16} color={colors.accent} />
               <Text style={[styles.heartsCount, { color: colors.accent }]}>{hearts}</Text>
             </View>
           )}
+
+          <Pressable onPress={readOnly ? undefined : onHeartTap} style={styles.photoPress}>
+            <View style={[styles.polaroid, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}>
+              <Image
+                source={{ uri: entry.photo_url }}
+                style={styles.photo}
+                contentFit="cover"
+                transition={300}
+              />
+            </View>
+          </Pressable>
 
           {readOnly ? null : uploading ? (
             <View style={styles.uploadingRow}>
@@ -150,32 +146,49 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: spacing.xl,
   },
-  titleInput: {
-    fontSize: 20,
-    fontWeight: "600",
+  dateLabel: {
+    fontSize: 13,
+    fontWeight: "500",
     textAlign: "center",
-    marginBottom: spacing.md,
     textTransform: "capitalize",
-    paddingVertical: spacing.xs,
+    letterSpacing: 0.3,
+  },
+  dividerWrap: {
+    alignItems: "center",
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  divider: {
+    width: 1,
+    height: 24,
+    opacity: 0.3,
   },
   photoContainer: {
     alignItems: "center",
   },
   photoPress: {
-    width: "100%",
+    alignItems: "center",
   },
-  photoWrap: {
-    width: "100%",
+  polaroid: {
+    padding: 8,
+    paddingBottom: 48,
+    borderRadius: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    transform: [{ rotate: "-3deg" }],
   },
   photo: {
-    width: "100%",
-    height: 400,
+    width: 220,
+    height: 260,
   },
   heartsRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
   heartsCount: {
     fontSize: 16,

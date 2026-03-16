@@ -8,7 +8,7 @@ import type { ThemeOption } from "@/contexts/theme-context";
 const THEME_OPTIONS: { key: ThemeOption; label: string; icon: string }[] = [
   { key: "auto", label: "Auto", icon: "phone-portrait-outline" },
   { key: "rosa", label: "Claro", icon: "sunny-outline" },
-  { key: "dark", label: "Dark", icon: "moon-outline" },
+  { key: "dark", label: "Oscuro", icon: "moon-outline" },
 ];
 
 export function ThemeSection() {

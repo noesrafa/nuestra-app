@@ -13,7 +13,7 @@ import { formatDisplayDate } from "@/lib/utils";
 import { resolvePhotoUrl } from "@/lib/storage";
 import type { Entry } from "@/lib/types";
 
-export function useEntryManager(date: string, onChanged?: () => void) {
+export function useEntryManager(date: string, onChanged?: () => void, refreshKey?: number) {
   const [entry, setEntry] = useState<Entry | null>(null);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState(formatDisplayDate(date));
@@ -49,7 +49,7 @@ export function useEntryManager(date: string, onChanged?: () => void) {
       setHearts(0);
     }
     setLoading(false);
-  }, [date]);
+  }, [date, refreshKey]);
 
   useEffect(() => {
     loadEntry();

@@ -11,7 +11,7 @@ const COL_GAP = 2;
 const DAY_WIDTH = (SCREEN_WIDTH - GRID_PADDING * 2 - COL_GAP * 6) / 7;
 const PHOTO_HEIGHT = DAY_WIDTH * 1.5;
 const ROW_HEIGHT = PHOTO_HEIGHT + 48;
-const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
+const DAYS = ["D", "L", "M", "M", "J", "V", "S"];
 const masksContext = require.context("../../assets/masks", false, /\.png$/);
 const MASKS = masksContext.keys().map((key: string) => masksContext(key));
 
@@ -21,7 +21,7 @@ function getFirstDayOfMonth(year: number, month: number) {
 
 function formatMonth(year: number, month: number) {
   const date = new Date(year, month);
-  const name = date.toLocaleDateString("en", { month: "short" });
+  const name = date.toLocaleDateString("es", { month: "long" });
   return `${name} ${year}`;
 }
 
