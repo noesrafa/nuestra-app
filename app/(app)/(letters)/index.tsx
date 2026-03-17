@@ -169,8 +169,8 @@ export default function LettersFeedScreen() {
           <Ionicons name="gift-outline" size={15} color={colors.accent} />
           <Text style={[styles.unreadText, { color: colors.accent }]}>
             {unreadCount === 1
-              ? "1 cartita esperándote"
-              : `${unreadCount} cartitas esperándote`}
+              ? "Tienes 1 cartita por encontrar"
+              : `Tienes ${unreadCount} cartitas por encontrar`}
           </Text>
         </View>
       )}

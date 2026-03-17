@@ -96,7 +96,7 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
             style={[styles.actionButton, { backgroundColor: colors.accentLight }]}
             onPress={openGiftSelector}
           >
-            <Ionicons name="paper-plane-outline" size={20} color={colors.accent} />
+            <Ionicons name="paper-plane" size={20} color={colors.accent} />
           </TouchableOpacity>
         )}
 

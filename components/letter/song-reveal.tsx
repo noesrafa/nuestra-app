@@ -13,7 +13,7 @@ import {
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { AudioPlayer, useAudioPlayer } from "expo-audio";
+import { useAudioPlayer } from "expo-audio";
 import Reanimated, {
   useAnimatedStyle,
   useSharedValue,
@@ -24,6 +24,7 @@ import Reanimated, {
 import { spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useCouple } from "@/hooks/use-couple";
+import { GiftButton } from "@/components/letter/gift-button";
 import type { Letter } from "@/lib/types";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -73,40 +74,6 @@ export function SongReveal({ letter, onRead }: Props) {
     transform: [{ rotate: `${rotation.value}deg` }],
   }));
 
-  // Bounce animation for gift button
-  const bounceY = useRef(new Animated.Value(0)).current;
-  const heartOpacity = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (!isUnread) return;
-
-    const heartBlink = Animated.loop(
-      Animated.sequence([
-        Animated.timing(heartOpacity, { toValue: 0.2, duration: 400, useNativeDriver: true }),
-        Animated.timing(heartOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-      ])
-    );
-    heartBlink.start();
-    return () => heartBlink.stop();
-  }, [isUnread, heartOpacity]);
-
-  useEffect(() => {
-    if (!isUnread) return;
-
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.delay(2500),
-        Animated.timing(bounceY, { toValue: -8, duration: 120, useNativeDriver: true }),
-        Animated.timing(bounceY, { toValue: 0, duration: 120, useNativeDriver: true }),
-        Animated.delay(80),
-        Animated.timing(bounceY, { toValue: -5, duration: 100, useNativeDriver: true }),
-        Animated.timing(bounceY, { toValue: 0, duration: 100, useNativeDriver: true }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [isUnread, bounceY]);
-
   // Modal animation
   const progress = useRef(new Animated.Value(0)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
@@ -127,29 +94,21 @@ export function SongReveal({ letter, onRead }: Props) {
     // Try to fetch preview URL if we don't have one
     if (!previewUrl && letter.spotify_track_id) {
       try {
-        const res = await fetch(
-          `https://open.spotify.com/oembed?url=https://open.spotify.com/track/${letter.spotify_track_id}`
+        const embedRes = await fetch(
+          `https://open.spotify.com/embed/track/${letter.spotify_track_id}`,
+          { headers: { Accept: "text/html" } }
         );
-        if (res.ok) {
-          const data = await res.json();
-          // oembed doesn't give preview_url directly, try embed page
-          const embedRes = await fetch(
-            `https://open.spotify.com/embed/track/${letter.spotify_track_id}`,
-            { headers: { Accept: "text/html" } }
-          );
-          if (embedRes.ok) {
-            const html = await embedRes.text();
-            const match = html.match(/"audioPreview":\s*\{[^}]*"url":\s*"([^"]+)"/);
-            if (match?.[1]) {
-              setPreviewUrl(match[1]);
-            }
+        if (embedRes.ok) {
+          const html = await embedRes.text();
+          const match = html.match(/"audioPreview":\s*\{[^}]*"url":\s*"([^"]+)"/);
+          if (match?.[1]) {
+            setPreviewUrl(match[1]);
           }
         }
       } catch {
         // No preview available
       }
     }
-
   }
 
   async function handleClose() {
@@ -175,21 +134,7 @@ export function SongReveal({ letter, onRead }: Props) {
 
   return (
     <>
-      <TouchableOpacity onPress={handleOpen} activeOpacity={0.7}>
-        <Animated.View
-          style={[
-            styles.giftButton,
-            { backgroundColor: colors.accentLight, transform: [{ translateY: bounceY }] },
-          ]}
-        >
-          <Ionicons name="musical-notes" size={22} color={colors.accent} />
-          {isUnread && (
-            <Animated.View style={[styles.unreadBadge, { backgroundColor: colors.accent, opacity: heartOpacity }]}>
-              <Ionicons name="heart" size={7} color="#FFFFFF" />
-            </Animated.View>
-          )}
-        </Animated.View>
-      </TouchableOpacity>
+      <GiftButton isUnread={isUnread} onPress={handleOpen} />
 
       <Modal visible={open} transparent statusBarTranslucent onRequestClose={handleClose}>
         <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
@@ -241,7 +186,6 @@ export function SongReveal({ letter, onRead }: Props) {
                 <Text style={[styles.signText, { color: colors.accent }]}>{signText}</Text>
               </View>
 
-              {/* Open in Spotify */}
               {letter.spotify_external_url && (
                 <TouchableOpacity
                   style={[styles.spotifyButton, { backgroundColor: "#1DB954" }]}
@@ -268,23 +212,6 @@ export function SongReveal({ letter, onRead }: Props) {
 }
 
 const styles = StyleSheet.create({
-  giftButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  unreadBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.65)",
