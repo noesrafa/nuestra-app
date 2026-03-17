@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: GRID_PADDING,
     marginTop: spacing.sm,
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
   },
   iconButton: {
     width: 36,

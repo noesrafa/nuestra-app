@@ -63,7 +63,7 @@ function PulsingDay({ day, color }: { day: number; color: string }) {
 }
 
 export function CalendarGrid({ year, month, entries, unreadLetterDates, songArtwork, isActive, onPrevMonth, onNextMonth, onDayPress }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const today = new Date();
   const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
 
@@ -142,7 +142,7 @@ export function CalendarGrid({ year, month, entries, unreadLetterDates, songArtw
                 {artworkUrl ? (
                   <View style={styles.vinylCase}>
                     {/* Vinyl disc peeking out from top */}
-                    <View style={styles.vinylDisc}>
+                    <View style={[styles.vinylDisc, { backgroundColor: isDark ? '#1F0B11' : '#1A1A1A' }]}>
                       <View style={styles.vinylGroove}>
                         <View style={styles.vinylHole} />
                       </View>
