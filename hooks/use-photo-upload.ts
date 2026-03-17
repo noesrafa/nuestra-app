@@ -100,42 +100,35 @@ export function usePhotoUpload() {
     uploadPhoto(result.assets[0].uri, ctx);
   }
 
-  async function pasteFromClipboard(ctx: UploadContext) {
-    if (Platform.OS !== "ios") return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  async function readClipboardImage(): Promise<string | null> {
+    if (Platform.OS !== "ios") return null;
     const hasImage = await Clipboard.hasImageAsync();
-    if (!hasImage) {
+    if (!hasImage) return null;
+    const clipboardImage = await Clipboard.getImageAsync({ format: "png" });
+    if (!clipboardImage?.data) return null;
+    const raw = clipboardImage.data;
+    return raw.includes(",") ? raw : `data:image/png;base64,${raw}`;
+  }
+
+  async function pasteFromClipboard(ctx: UploadContext) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const image = await readClipboardImage();
+    if (!image) {
       Alert.alert(
         "Sin imagen",
         "No hay imagen en el portapapeles. Mantené presionada una foto en Fotos y tocá 'Copiar'."
       );
       return;
     }
-
-    const clipboardImage = await Clipboard.getImageAsync({ format: "png" });
-    if (!clipboardImage?.data) {
-      Alert.alert("Error", "No se pudo leer la imagen del portapapeles");
-      return;
-    }
-
-    const raw = clipboardImage.data;
-    const base64 = raw.includes(",") ? raw : `data:image/png;base64,${raw}`;
-    uploadPhoto(base64, ctx);
+    uploadPhoto(image, ctx);
   }
 
   async function smartPick(ctx: UploadContext) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (Platform.OS === "ios") {
-      const hasImage = await Clipboard.hasImageAsync();
-      if (hasImage) {
-        const clipboardImage = await Clipboard.getImageAsync({ format: "png" });
-        if (clipboardImage?.data) {
-          const raw = clipboardImage.data;
-          const base64 = raw.includes(",") ? raw : `data:image/png;base64,${raw}`;
-          uploadPhoto(base64, ctx);
-          return;
-        }
-      }
+    const clipImage = await readClipboardImage();
+    if (clipImage) {
+      uploadPhoto(clipImage, ctx);
+      return;
     }
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {

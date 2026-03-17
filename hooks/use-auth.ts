@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
@@ -21,5 +21,7 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  return { session, user: session?.user ?? null, loading };
+  const user = useMemo(() => session?.user ?? null, [session?.user?.id]);
+
+  return { session, user, loading };
 }

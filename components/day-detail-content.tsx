@@ -172,7 +172,7 @@ export function DayDetailContent({ date, onChanged, readOnly, autoReveal }: Prop
           {uploading ? (
             <View style={styles.uploadingCol}>
               <ActivityIndicator color={colors.accent} size="large" />
-              <Text style={styles.uploadStatusText}>{uploadStatus}</Text>
+              <Text style={[styles.uploadStatusText, { color: colors.textSecondary }]}>{uploadStatus}</Text>
             </View>
           ) : (
             <>

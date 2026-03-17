@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import * as WebBrowser from "expo-web-browser";
 import * as Crypto from "expo-crypto";
 import { supabase } from "@/lib/supabase";
@@ -13,6 +13,9 @@ type TokenRow = {
 
 export function useSpotifyAuth() {
   const { user } = useAuth();
+  const userRef = useRef(user);
+  userRef.current = user;
+
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -31,14 +34,15 @@ export function useSpotifyAuth() {
 
     setIsConnected(!!data);
     setLoading(false);
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     checkConnection();
   }, [checkConnection]);
 
-  async function connect(): Promise<boolean> {
-    if (!user) return false;
+  const connect = useCallback(async (): Promise<boolean> => {
+    const u = userRef.current;
+    if (!u) return false;
 
     // PKCE flow
     const codeVerifier = Crypto.randomUUID() + Crypto.randomUUID();
@@ -107,7 +111,7 @@ export function useSpotifyAuth() {
       .from(DB.TABLES.SPOTIFY_TOKENS)
       .upsert(
         {
-          user_id: user.id,
+          user_id: u.id,
           access_token: tokens.access_token,
           refresh_token: tokens.refresh_token,
           expires_at: expiresAt,
@@ -120,15 +124,16 @@ export function useSpotifyAuth() {
       return true;
     }
     return false;
-  }
+  }, []);
 
-  async function getAccessToken(forceRefresh = false): Promise<string | null> {
-    if (!user) return null;
+  const getAccessToken = useCallback(async (forceRefresh = false): Promise<string | null> => {
+    const u = userRef.current;
+    if (!u) return null;
 
     const { data } = await supabase
       .from(DB.TABLES.SPOTIFY_TOKENS)
       .select("access_token, refresh_token, expires_at")
-      .eq("user_id", user.id)
+      .eq("user_id", u.id)
       .single();
 
     if (!data) return null;
@@ -156,12 +161,11 @@ export function useSpotifyAuth() {
     if (!res.ok) {
       const err = await res.text();
       console.warn("[SpotifyAuth] Refresh failed:", res.status, err);
-      // Only wipe tokens if refresh token is truly invalid (400/401)
       if (res.status === 400 || res.status === 401) {
         await supabase
           .from(DB.TABLES.SPOTIFY_TOKENS)
           .delete()
-          .eq("user_id", user.id);
+          .eq("user_id", u.id);
         setIsConnected(false);
       }
       return null;
@@ -177,21 +181,22 @@ export function useSpotifyAuth() {
         refresh_token: tokens.refresh_token ?? row.refresh_token,
         expires_at: expiresAt,
       })
-      .eq("user_id", user.id);
+      .eq("user_id", u.id);
 
     return tokens.access_token;
-  }
+  }, []);
 
-  async function disconnect() {
-    if (!user) return;
+  const disconnect = useCallback(async () => {
+    const u = userRef.current;
+    if (!u) return;
 
     await supabase
       .from(DB.TABLES.SPOTIFY_TOKENS)
       .delete()
-      .eq("user_id", user.id);
+      .eq("user_id", u.id);
 
     setIsConnected(false);
-  }
+  }, []);
 
   return { isConnected, loading, connect, getAccessToken, disconnect };
 }
