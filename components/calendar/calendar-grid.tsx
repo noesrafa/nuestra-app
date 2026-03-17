@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from "react-native-reanimated";
 import { useEffect } from "react";
@@ -139,14 +140,30 @@ export function CalendarGrid({ year, month, entries, unreadLetterDates, songArtw
                     {day}
                   </Text>
                 )}
-                <View style={artworkUrl ? styles.vinylContainer : undefined}>
+                {artworkUrl ? (
+                  <View style={styles.vinylCase}>
+                    {/* Vinyl disc peeking out from top */}
+                    <View style={styles.vinylDisc}>
+                      <View style={styles.vinylGroove}>
+                        <View style={styles.vinylHole} />
+                      </View>
+                    </View>
+                    {/* Album cover sleeve */}
+                    <Image
+                      source={{ uri: artworkUrl }}
+                      style={styles.albumCover}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                  </View>
+                ) : (
                   <Image
                     source={displayImage ? { uri: displayImage } : MASKS[((day * 31 + month * 97 + year * 53) * 2654435761 >>> 0) % MASKS.length]}
-                    style={artworkUrl ? styles.vinyl : styles.photo}
-                    contentFit={artworkUrl ? "cover" : "contain"}
+                    style={styles.photo}
+                    contentFit={displayImage ? "cover" : "contain"}
                     transition={displayImage ? 200 : 0}
                   />
-                </View>
+                )}
                 {isActive && <Text style={[styles.plusIcon, { color: colors.accent, opacity: 0.6 }]}>+</Text>}
               </TouchableOpacity>
             );
@@ -216,16 +233,41 @@ const styles = StyleSheet.create({
     height: PHOTO_HEIGHT,
     borderRadius: 4,
   },
-  vinylContainer: {
+  vinylCase: {
     width: DAY_WIDTH - 8,
     height: PHOTO_HEIGHT,
     alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  vinylDisc: {
+    width: DAY_WIDTH - 14,
+    height: DAY_WIDTH - 14,
+    borderRadius: (DAY_WIDTH - 14) / 2,
+    backgroundColor: "#1A1A1A",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: -(DAY_WIDTH - 14) * 0.4,
+  },
+  vinylGroove: {
+    width: (DAY_WIDTH - 16) * 0.6,
+    height: (DAY_WIDTH - 16) * 0.6,
+    borderRadius: (DAY_WIDTH - 16) * 0.3,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
     justifyContent: "center",
   },
-  vinyl: {
+  vinylHole: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  albumCover: {
     width: DAY_WIDTH - 8,
     height: DAY_WIDTH - 8,
-    borderRadius: (DAY_WIDTH - 8) / 2,
+    borderRadius: 0,
+    zIndex: 1,
   },
   plusIcon: {
     fontSize: 16,

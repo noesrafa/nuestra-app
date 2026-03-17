@@ -44,7 +44,7 @@ export default function AppLayout() {
           ) : (
             <Icon src={<VectorIcon family={Ionicons} name="gift-outline" />} />
           )}
-          <Label>Cositas</Label>
+          <Label>Sorpresas</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="(nosotros)">
           {isIOS ? (

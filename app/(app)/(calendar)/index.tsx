@@ -93,12 +93,13 @@ export default function CalendarScreen() {
   }
 
   async function loadSongArtwork() {
+    if (!user) return;
     const startDate = formatDate(year, month, 1);
     const endDate = formatDate(year, month, getDaysInMonth(year, month));
 
     const { data } = await supabase
       .from(DB.TABLES.LETTERS)
-      .select("date, spotify_artwork_url")
+      .select("date, spotify_artwork_url, from_user, read_at")
       .eq("type", "song")
       .not("spotify_artwork_url", "is", null)
       .gte("date", startDate)
@@ -106,7 +107,8 @@ export default function CalendarScreen() {
 
     const map = new Map<string, string>();
     for (const row of data ?? []) {
-      if (row.spotify_artwork_url) {
+      // Only show artwork if sent by me or already opened
+      if (row.spotify_artwork_url && (row.from_user === user.id || row.read_at)) {
         map.set(row.date, row.spotify_artwork_url);
       }
     }

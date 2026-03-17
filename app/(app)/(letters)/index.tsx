@@ -137,7 +137,7 @@ export default function LettersFeedScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]}>
-      <Text style={[styles.title, { color: colors.accent }]}>Cositas</Text>
+      <Text style={[styles.title, { color: colors.accent }]}>Sorpresas</Text>
 
       {/* Toggle — underline style */}
       <View style={styles.toggleRow}>
@@ -161,8 +161,8 @@ export default function LettersFeedScreen() {
           <Ionicons name="gift-outline" size={15} color={colors.accent} />
           <Text style={[styles.unreadText, { color: colors.accent }]}>
             {unreadCount === 1
-              ? "Tienes 1 cosita por encontrar"
-              : `Tienes ${unreadCount} cositas por encontrar`}
+              ? "Tienes 1 regalito por encontrar"
+              : `Tienes ${unreadCount} regalitos por encontrar`}
           </Text>
         </View>
       )}
