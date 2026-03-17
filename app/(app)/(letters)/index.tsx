@@ -137,7 +137,7 @@ export default function LettersFeedScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]}>
-      <Text style={[styles.title, { color: colors.accent }]}>Sorpresas</Text>
+      <Text style={[styles.title, { color: colors.accent }]}>Listas</Text>
 
       {/* Toggle — underline style */}
       <View style={styles.toggleRow}>

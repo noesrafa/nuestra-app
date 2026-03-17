@@ -235,6 +235,7 @@ export default function CalendarScreen() {
           isActive={isActive}
           onPrevMonth={prevMonth}
           onNextMonth={nextMonth}
+          onMonthYearChange={(y, m) => { setYear(y); setMonth(m); }}
           onDayPress={openDay}
         />
       </ScrollView>

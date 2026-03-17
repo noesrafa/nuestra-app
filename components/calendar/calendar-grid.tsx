@@ -1,11 +1,82 @@
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
+import { View, Text, TouchableOpacity, Pressable, ScrollView, StyleSheet, Dimensions, Modal, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from "react-native-reanimated";
-import { useEffect } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { getDaysInMonth, formatDate } from "@/lib/utils";
+
+const MONTHS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+const YEAR_START = 2020;
+const NOW = new Date();
+const YEAR_END = NOW.getFullYear();
+const YEARS = Array.from({ length: YEAR_END - YEAR_START + 1 }, (_, i) => String(YEAR_START + i));
+const WHEEL_ITEM_H = 44;
+const WHEEL_VISIBLE = 5;
+const WHEEL_H = WHEEL_ITEM_H * WHEEL_VISIBLE;
+const WHEEL_PAD = WHEEL_ITEM_H * 2; // padding top/bottom so selected is centered
+
+type WheelProps = {
+  items: string[];
+  selectedIndex: number;
+  onIndexChange: (i: number) => void;
+  textColor: string;
+  accentBg: string;
+  style?: object;
+};
+
+function Wheel({ items, selectedIndex, onIndexChange, textColor, accentBg, style }: WheelProps) {
+  const scrollRef = useRef<ScrollView>(null);
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    // Scroll to initial position after layout
+    const timer = setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: selectedIndex * WHEEL_ITEM_H, animated: false });
+      mounted.current = true;
+    }, 10);
+    return () => clearTimeout(timer);
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const y = e.nativeEvent.contentOffset.y;
+    const idx = Math.round(y / WHEEL_ITEM_H);
+    const clamped = Math.max(0, Math.min(idx, items.length - 1));
+    onIndexChange(clamped);
+  }, [items.length, onIndexChange]);
+
+  return (
+    <View style={[{ height: WHEEL_H, overflow: "hidden" }, style]}>
+      <View style={{
+        position: "absolute", top: WHEEL_PAD, left: 0, right: 0,
+        height: WHEEL_ITEM_H, backgroundColor: accentBg, borderRadius: 12,
+        zIndex: 0,
+      }} />
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        snapToInterval={WHEEL_ITEM_H}
+        decelerationRate="fast"
+        onMomentumScrollEnd={handleScrollEnd}
+        contentContainerStyle={{ paddingVertical: WHEEL_PAD }}
+      >
+        {items.map((item, i) => (
+          <View key={i} style={{ height: WHEEL_ITEM_H, justifyContent: "center", alignItems: "center" }}>
+            <Text style={{ fontSize: 18, color: textColor, opacity: i === selectedIndex ? 1 : 0.4 }}>
+              {item}
+            </Text>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const GRID_PADDING = spacing.md;
@@ -36,6 +107,7 @@ type Props = {
   isActive: boolean;
   onPrevMonth: () => void;
   onNextMonth: () => void;
+  onMonthYearChange: (year: number, month: number) => void;
   onDayPress: (date: string) => void;
 };
 
@@ -62,8 +134,12 @@ function PulsingDay({ day, color }: { day: number; color: string }) {
   );
 }
 
-export function CalendarGrid({ year, month, entries, unreadLetterDates, songArtwork, isActive, onPrevMonth, onNextMonth, onDayPress }: Props) {
+export function CalendarGrid({ year, month, entries, unreadLetterDates, songArtwork, isActive, onPrevMonth, onNextMonth, onMonthYearChange, onDayPress }: Props) {
   const { colors, isDark } = useTheme();
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerKey, setPickerKey] = useState(0);
+  const [pickerMonthIdx, setPickerMonthIdx] = useState(month);
+  const [pickerYearIdx, setPickerYearIdx] = useState(YEARS.indexOf(String(year)));
   const today = new Date();
   const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
 
@@ -87,7 +163,10 @@ export function CalendarGrid({ year, month, entries, unreadLetterDates, songArtw
     onPrevMonth();
   }
 
+  const isAtMax = year === NOW.getFullYear() && month >= NOW.getMonth();
+
   function handleNext() {
+    if (isAtMax) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onNextMonth();
   }
@@ -98,9 +177,17 @@ export function CalendarGrid({ year, month, entries, unreadLetterDates, songArtw
         <TouchableOpacity onPress={handlePrev} style={styles.navButton}>
           <Text style={[styles.navText, { color: colors.accent }]}>{"\u2039"}</Text>
         </TouchableOpacity>
-        <Text style={[styles.monthText, { color: colors.accent }]}>{formatMonth(year, month)}</Text>
-        <TouchableOpacity onPress={handleNext} style={styles.navButton}>
-          <Text style={[styles.navText, { color: colors.accent }]}>{"\u203A"}</Text>
+        <TouchableOpacity onPress={() => {
+          setPickerMonthIdx(month);
+          setPickerYearIdx(Math.max(0, YEARS.indexOf(String(year))));
+          setPickerKey(k => k + 1);
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setPickerVisible(true);
+        }}>
+          <Text style={[styles.monthText, { color: colors.accent }]}>{formatMonth(year, month)}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleNext} style={styles.navButton} disabled={isAtMax}>
+          <Text style={[styles.navText, { color: colors.accent, opacity: isAtMax ? 0.2 : 1 }]}>{"\u203A"}</Text>
         </TouchableOpacity>
       </View>
 
@@ -170,6 +257,71 @@ export function CalendarGrid({ year, month, entries, unreadLetterDates, songArtw
         </View>
       ))}
       <View style={{ height: 40 }} />
+
+      <Modal visible={pickerVisible} transparent animationType="fade" onRequestClose={() => setPickerVisible(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setPickerVisible(false)}>
+          <View />
+        </Pressable>
+        <View style={[styles.pickerContainer, { backgroundColor: colors.surface }]}>
+          <View style={styles.pickerHeader}>
+            <TouchableOpacity onPress={() => setPickerVisible(false)}>
+              <Text style={[styles.pickerAction, { color: colors.textSecondary }]}>Cancelar</Text>
+            </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  onMonthYearChange(NOW.getFullYear(), NOW.getMonth());
+                  setPickerVisible(false);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                }}
+                style={[styles.pickerBtn, { borderColor: colors.accent }]}
+              >
+                <Text style={[styles.pickerBtnText, { color: colors.accent }]}>Hoy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  const selYear = Number(YEARS[pickerYearIdx]);
+                  const maxMonth = selYear === NOW.getFullYear() ? NOW.getMonth() : 11;
+                  const selMonth = Math.min(pickerMonthIdx, maxMonth);
+                  onMonthYearChange(selYear, selMonth);
+                  setPickerVisible(false);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                }}
+                style={[styles.pickerBtn, { borderColor: colors.accent, backgroundColor: colors.accent }]}
+              >
+                <Text style={[styles.pickerBtnText, { color: colors.surface }]}>Ir</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.pickerWheels}>
+            <Wheel
+              key={`m-${pickerKey}-${pickerYearIdx}`}
+              items={Number(YEARS[pickerYearIdx]) === NOW.getFullYear()
+                ? MONTHS.slice(0, NOW.getMonth() + 1)
+                : MONTHS}
+              selectedIndex={Math.min(pickerMonthIdx, Number(YEARS[pickerYearIdx]) === NOW.getFullYear() ? NOW.getMonth() : 11)}
+              onIndexChange={setPickerMonthIdx}
+              textColor={colors.accent}
+              accentBg={colors.accentLight}
+              style={{ flex: 1 }}
+            />
+            <Wheel
+              key={`y-${pickerKey}`}
+              items={YEARS}
+              selectedIndex={pickerYearIdx}
+              onIndexChange={(idx) => {
+                setPickerYearIdx(idx);
+                if (Number(YEARS[idx]) === NOW.getFullYear() && pickerMonthIdx > NOW.getMonth()) {
+                  setPickerMonthIdx(NOW.getMonth());
+                }
+              }}
+              textColor={colors.accent}
+              accentBg={colors.accentLight}
+              style={{ width: 100 }}
+            />
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -273,5 +425,40 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     marginTop: 2,
     lineHeight: 18,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  pickerContainer: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
+  },
+  pickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  pickerAction: {
+    fontSize: 16,
+  },
+  pickerBtn: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  pickerBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  pickerWheels: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    height: 220,
+    alignItems: "center",
   },
 });

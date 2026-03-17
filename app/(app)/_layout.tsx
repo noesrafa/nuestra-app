@@ -29,6 +29,8 @@ export default function AppLayout() {
           selected: { color: colors.accent },
         }}
         backgroundColor={colors.surface}
+        indicatorColor={colors.accentLight}
+        rippleColor={colors.accentLight}
       >
         <NativeTabs.Trigger name="(calendar)">
           {isIOS ? (
@@ -44,7 +46,7 @@ export default function AppLayout() {
           ) : (
             <Icon src={<VectorIcon family={Ionicons} name="gift-outline" />} />
           )}
-          <Label>Sorpresas</Label>
+          <Label>Listas</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="(nosotros)">
           {isIOS ? (
