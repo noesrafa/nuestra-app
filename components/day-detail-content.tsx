@@ -140,7 +140,7 @@ export function DayDetailContent({ date, onChanged, readOnly, autoReveal }: Prop
           )}
 
           <Pressable onPress={readOnly ? undefined : deleteEntry} style={styles.photoPress}>
-            <View style={[styles.polaroid, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}>
+            <View style={[styles.polaroid, { backgroundColor: colors.cardBg }]}>
               <Image
                 source={{ uri: entry.photo_url }}
                 style={styles.photo}
@@ -170,9 +170,13 @@ export function DayDetailContent({ date, onChanged, readOnly, autoReveal }: Prop
       ) : (
         <View style={styles.emptyContainer}>
           {uploading ? (
-            <View style={styles.uploadingCol}>
-              <ActivityIndicator color={colors.accent} size="large" />
-              <Text style={[styles.uploadStatusText, { color: colors.textSecondary }]}>{uploadStatus}</Text>
+            <View style={styles.promptArea}>
+              <View style={[styles.emptyPolaroid, { backgroundColor: colors.cardBg }]}>
+                <View style={[styles.emptyPhotoSlot, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }]}>
+                  <ActivityIndicator color={colors.accent} size="large" />
+                  <Text style={[styles.uploadStatusText, { color: colors.accent, opacity: 0.6 }]}>{uploadStatus}</Text>
+                </View>
+              </View>
             </View>
           ) : (
             <>
@@ -182,7 +186,7 @@ export function DayDetailContent({ date, onChanged, readOnly, autoReveal }: Prop
                 activeOpacity={0.7}
               >
                 {/* Empty polaroid placeholder */}
-                <View style={[styles.emptyPolaroid, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}>
+                <View style={[styles.emptyPolaroid, { backgroundColor: colors.cardBg }]}>
                   <View style={[styles.emptyPhotoSlot, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }]}>
                     <Ionicons name="camera-outline" size={28} color={colors.accent} style={{ opacity: 0.5 }} />
                     <Text style={[styles.uploadLabel, { color: colors.accent, opacity: 0.5 }]}>Subir</Text>

@@ -181,12 +181,12 @@ export default function SongScreen() {
       </Text>
 
       {/* Search bar */}
-      <View style={[styles.searchBar, { backgroundColor: colors.inputBg }]}>
-        <Ionicons name="search" size={18} color={colors.textSecondary} />
+      <View style={[styles.searchBar, { backgroundColor: colors.background }]}>
+        <Ionicons name="search" size={18} color={colors.accent} style={{ opacity: 0.5 }} />
         <TextInput
-          style={[styles.searchInput, { color: colors.text }]}
+          style={[styles.searchInput, { color: colors.accent }]}
           placeholder="Nombre de canción o artista..."
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={colors.accent + "80"}
           value={query}
           onChangeText={handleSearch}
           autoFocus
