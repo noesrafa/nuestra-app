@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -41,6 +42,8 @@ function LetterCard({
   const lineColor = isDark ? "rgba(212,99,138,0.10)" : "rgba(139,34,82,0.06)";
   const rotation = ROTATIONS[index % ROTATIONS.length];
 
+  const isSong = letter.type === "song";
+
   return (
     <TouchableOpacity
       style={[styles.card, { backgroundColor: paperBg, transform: [{ rotate: rotation }] }]}
@@ -48,17 +51,46 @@ function LetterCard({
       activeOpacity={0.8}
     >
       {/* Paper lines */}
-      {Array.from({ length: 6 }).map((_, i) => (
+      {!isSong && Array.from({ length: 6 }).map((_, i) => (
         <View key={i} style={[styles.line, { top: 12 + i * 26, backgroundColor: lineColor }]} />
       ))}
 
-      <Text style={[styles.cardBody, { color: colors.text }]} numberOfLines={3}>
-        {letter.body}
-      </Text>
+      {isSong ? (
+        <View style={styles.songRow}>
+          {letter.spotify_artwork_url && (
+            <Image
+              source={{ uri: letter.spotify_artwork_url }}
+              style={styles.songThumb}
+              contentFit="cover"
+              transition={200}
+            />
+          )}
+          <View style={styles.songInfo}>
+            <View style={styles.songTitleRow}>
+              <Ionicons name="musical-notes" size={14} color={colors.accent} style={{ opacity: 0.6 }} />
+              <Text style={[styles.songTrackName, { color: colors.text }]} numberOfLines={1}>
+                {letter.spotify_track_name}
+              </Text>
+            </View>
+            <Text style={[styles.songArtistName, { color: colors.textSecondary }]} numberOfLines={1}>
+              {letter.spotify_artist_name}
+            </Text>
+            {letter.body ? (
+              <Text style={[styles.songDedication, { color: colors.text }]} numberOfLines={2}>
+                {`\u201C${letter.body}\u201D`}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      ) : (
+        <Text style={[styles.cardBody, { color: colors.text }]} numberOfLines={3}>
+          {letter.body}
+        </Text>
+      )}
 
       <View style={styles.cardBottom}>
         <Text style={[styles.cardSign, { color: colors.accent }]}>
-          {letter.isMine ? "tu cartita" : signText}
+          {letter.isMine ? (isSong ? "tu canción" : "tu cartita") : signText}
         </Text>
         <Text style={[styles.cardDate, { color: colors.accent, opacity: 0.5 }]} numberOfLines={1}>
           {formatDisplayDate(letter.date)}
@@ -289,5 +321,38 @@ const styles = StyleSheet.create({
   cardDate: {
     fontSize: 11,
     textTransform: "capitalize",
+  },
+  songRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+    alignItems: "flex-start",
+  },
+  songThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+  },
+  songInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  songTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  songTrackName: {
+    fontSize: 16,
+    fontWeight: "700",
+    flex: 1,
+  },
+  songArtistName: {
+    fontSize: 13,
+  },
+  songDedication: {
+    fontSize: 14,
+    fontStyle: "italic",
+    marginTop: 4,
+    lineHeight: 20,
   },
 });

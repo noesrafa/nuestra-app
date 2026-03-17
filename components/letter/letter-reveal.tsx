@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  ScrollView,
   StyleSheet,
   Animated,
   Modal,
@@ -177,18 +178,11 @@ export function LetterReveal({ letter, onRead }: Props) {
             </View>
 
             {/* Letter paper */}
-            <View style={[styles.paper, { backgroundColor: paperBg }]}>
-              {/* Decorative lines */}
-              {Array.from({ length: 10 }).map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.line,
-                    { top: 32 + i * 30, backgroundColor: lineColor },
-                  ]}
-                />
-              ))}
-
+            <ScrollView
+              style={[styles.paperScroll, { backgroundColor: paperBg }]}
+              contentContainerStyle={styles.paperContent}
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={[styles.letterBody, { color: colors.text }]}>
                 {letter.body}
               </Text>
@@ -199,7 +193,7 @@ export function LetterReveal({ letter, onRead }: Props) {
                   {signText}
                 </Text>
               </View>
-            </View>
+            </ScrollView>
 
             {/* Close button */}
             <TouchableOpacity
@@ -258,25 +252,21 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  paper: {
+  paperScroll: {
     width: "100%",
     borderRadius: 16,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl + spacing.sm,
-    paddingBottom: spacing.lg,
-    minHeight: 220,
-    overflow: "hidden",
+    maxHeight: SCREEN_HEIGHT * 0.55,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 8,
   },
-  line: {
-    position: "absolute",
-    left: spacing.lg,
-    right: spacing.lg,
-    height: StyleSheet.hairlineWidth,
+  paperContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl + spacing.sm,
+    paddingBottom: spacing.lg,
+    minHeight: 200,
   },
   letterBody: {
     fontSize: 18,

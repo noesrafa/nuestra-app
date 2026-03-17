@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    paddingBottom: Platform.OS === "ios" ? 34 : spacing.md,
+    paddingBottom: 120,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   sendButton: {

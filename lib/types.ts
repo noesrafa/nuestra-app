@@ -32,12 +32,30 @@ export type MemberProfile = {
   avatar_url: string | null;
 };
 
+export type LetterType = "letter" | "song";
+
 export type Letter = {
   id: string;
   couple_id: string;
   date: string;
   from_user: string;
-  body: string;
+  type: LetterType;
+  body: string | null;
   read_at: string | null;
   created_at: string;
+  spotify_track_id: string | null;
+  spotify_track_name: string | null;
+  spotify_artist_name: string | null;
+  spotify_artwork_url: string | null;
+  spotify_preview_url: string | null;
+  spotify_external_url: string | null;
+};
+
+export type SpotifyTrack = {
+  id: string;
+  name: string;
+  artist: string;
+  artworkUrl: string;
+  previewUrl: string | null;
+  externalUrl: string;
 };

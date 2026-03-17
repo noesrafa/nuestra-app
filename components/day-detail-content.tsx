@@ -19,6 +19,8 @@ import { usePhotoUpload, type UploadContext } from "@/hooks/use-photo-upload";
 import { useLetter } from "@/hooks/use-letter";
 import { LetterReveal } from "@/components/letter/letter-reveal";
 import { SentLetterView } from "@/components/letter/sent-letter-view";
+import { SongReveal } from "@/components/letter/song-reveal";
+import { SentSongView } from "@/components/letter/sent-song-view";
 
 type Props = {
   date: string;
@@ -42,9 +44,9 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
     onSuccess: () => { loadEntry(); onChanged?.(); },
   };
 
-  function openWriteLetter() {
+  function openGiftSelector() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push(`/(app)/(calendar)/letter/${date}`);
+    router.push(`/(app)/(calendar)/gift/${date}`);
   }
 
   if (loading) {
@@ -70,7 +72,11 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
       if (receivedLetter) {
         return (
           <View style={styles.actionsRow}>
-            <LetterReveal letter={receivedLetter} onRead={markAsRead} />
+            {receivedLetter.type === "song" ? (
+              <SongReveal letter={receivedLetter} onRead={markAsRead} />
+            ) : (
+              <LetterReveal letter={receivedLetter} onRead={markAsRead} />
+            )}
           </View>
         );
       }
@@ -80,25 +86,35 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
     return (
       <View style={styles.actionsRow}>
         {sentLetter ? (
-          <SentLetterView letter={sentLetter} />
+          sentLetter.type === "song" ? (
+            <SentSongView letter={sentLetter} />
+          ) : (
+            <SentLetterView letter={sentLetter} />
+          )
         ) : (
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: colors.accentLight }]}
-            onPress={openWriteLetter}
+            onPress={openGiftSelector}
           >
-            <Ionicons name="pencil" size={20} color={colors.accent} />
+            <Ionicons name="paper-plane-outline" size={20} color={colors.accent} />
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: colors.accentLight }]}
-          onPress={onHeartTap}
-        >
-          <Ionicons name="heart" size={22} color={colors.accent} />
-        </TouchableOpacity>
+        {entry?.photo_url && (
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: colors.accentLight }]}
+            onPress={onHeartTap}
+          >
+            <Ionicons name="heart" size={22} color={colors.accent} />
+          </TouchableOpacity>
+        )}
 
         {receivedLetter && (
-          <LetterReveal letter={receivedLetter} onRead={markAsRead} />
+          receivedLetter.type === "song" ? (
+            <SongReveal letter={receivedLetter} onRead={markAsRead} />
+          ) : (
+            <LetterReveal letter={receivedLetter} onRead={markAsRead} />
+          )
         )}
       </View>
     );
@@ -142,7 +158,11 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
           </Text>
           {receivedLetter && (
             <View style={styles.actionsRow}>
-              <LetterReveal letter={receivedLetter} onRead={markAsRead} />
+              {receivedLetter.type === "song" ? (
+                <SongReveal letter={receivedLetter} onRead={markAsRead} />
+              ) : (
+                <LetterReveal letter={receivedLetter} onRead={markAsRead} />
+              )}
             </View>
           )}
         </View>
@@ -163,11 +183,12 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
                 {/* Empty polaroid placeholder */}
                 <View style={[styles.emptyPolaroid, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}>
                   <View style={[styles.emptyPhotoSlot, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)" }]}>
-                    <Ionicons name="camera-outline" size={28} color={colors.accent} style={{ opacity: 0.25 }} />
+                    <Ionicons name="camera-outline" size={28} color={colors.accent} style={{ opacity: 0.5 }} />
+                    <Text style={[styles.uploadLabel, { color: colors.accent, opacity: 0.5 }]}>Subir</Text>
                   </View>
                   <View style={styles.polaroidCaption}>
                     <Text style={[styles.promptText, { color: isDark ? colors.text : "#2D2D2D" }]} numberOfLines={1}>
-                      {getPhotoPrompt(date)} <Ionicons name="heart" size={13} color="#FFFFFF" />
+                      {getPhotoPrompt(date)} <Ionicons name="heart" size={13} color={colors.accent} />
                     </Text>
                     <Text style={[styles.promptHint, { color: isDark ? colors.textSecondary : "#999" }]}>
                       Toca para subir su foto
@@ -287,8 +308,14 @@ const styles = StyleSheet.create({
     height: 220,
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
+  },
+  uploadLabel: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   polaroidCaption: {
+    width: 200,
     alignItems: "center",
     paddingTop: 8,
     paddingBottom: 4,

@@ -32,6 +32,7 @@ type Props = {
   month: number;
   entries: Map<string, { photo_url: string | null }>;
   unreadLetterDates?: Set<string>;
+  songArtwork?: Map<string, string>;
   isActive: boolean;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -60,7 +61,7 @@ function PulsingDay({ day, color }: { day: number; color: string }) {
   );
 }
 
-export function CalendarGrid({ year, month, entries, unreadLetterDates, isActive, onPrevMonth, onNextMonth, onDayPress }: Props) {
+export function CalendarGrid({ year, month, entries, unreadLetterDates, songArtwork, isActive, onPrevMonth, onNextMonth, onDayPress }: Props) {
   const { colors } = useTheme();
   const today = new Date();
   const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
@@ -119,7 +120,9 @@ export function CalendarGrid({ year, month, entries, unreadLetterDates, isActive
             const isToday = dateStr === todayStr;
             const entryData = entries.get(dateStr);
             const photoUrl = entryData?.photo_url;
+            const artworkUrl = !photoUrl ? songArtwork?.get(dateStr) : undefined;
             const hasUnreadLetter = unreadLetterDates?.has(dateStr) ?? false;
+            const displayImage = photoUrl || artworkUrl;
 
             return (
               <TouchableOpacity
@@ -135,12 +138,14 @@ export function CalendarGrid({ year, month, entries, unreadLetterDates, isActive
                     {day}
                   </Text>
                 )}
-                <Image
-                  source={photoUrl ? { uri: photoUrl } : MASKS[((day * 31 + month * 97 + year * 53) * 2654435761 >>> 0) % MASKS.length]}
-                  style={styles.photo}
-                  contentFit="contain"
-                  transition={photoUrl ? 200 : 0}
-                />
+                <View style={artworkUrl ? styles.vinylContainer : undefined}>
+                  <Image
+                    source={displayImage ? { uri: displayImage } : MASKS[((day * 31 + month * 97 + year * 53) * 2654435761 >>> 0) % MASKS.length]}
+                    style={artworkUrl ? styles.vinyl : styles.photo}
+                    contentFit={artworkUrl ? "cover" : "contain"}
+                    transition={displayImage ? 200 : 0}
+                  />
+                </View>
                 {isActive && <Text style={[styles.plusIcon, { color: colors.accent, opacity: 0.6 }]}>+</Text>}
               </TouchableOpacity>
             );
@@ -209,6 +214,17 @@ const styles = StyleSheet.create({
     width: DAY_WIDTH - 8,
     height: PHOTO_HEIGHT,
     borderRadius: 4,
+  },
+  vinylContainer: {
+    width: DAY_WIDTH - 8,
+    height: PHOTO_HEIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  vinyl: {
+    width: DAY_WIDTH - 8,
+    height: DAY_WIDTH - 8,
+    borderRadius: (DAY_WIDTH - 8) / 2,
   },
   plusIcon: {
     fontSize: 16,

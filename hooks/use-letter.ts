@@ -4,7 +4,7 @@ import { DB } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { useCouple } from "@/hooks/use-couple";
 import { useRealtime } from "@/hooks/use-realtime";
-import type { Letter } from "@/lib/types";
+import type { Letter, SpotifyTrack } from "@/lib/types";
 
 export function useLetter(date: string) {
   const { user } = useAuth();
@@ -45,7 +45,48 @@ export function useLetter(date: string) {
     const { error } = await supabase
       .from(DB.TABLES.LETTERS)
       .upsert(
-        { couple_id: coupleId, date, from_user: user.id, body },
+        {
+          couple_id: coupleId,
+          date,
+          from_user: user.id,
+          type: "letter",
+          body,
+          spotify_track_id: null,
+          spotify_track_name: null,
+          spotify_artist_name: null,
+          spotify_artwork_url: null,
+          spotify_preview_url: null,
+          spotify_external_url: null,
+        },
+        { onConflict: "couple_id,date,from_user" }
+      );
+
+    if (!error) {
+      await loadLetters();
+      return true;
+    }
+    return false;
+  }
+
+  async function sendSong(track: SpotifyTrack, dedication?: string) {
+    if (!coupleId || !user) return false;
+
+    const { error } = await supabase
+      .from(DB.TABLES.LETTERS)
+      .upsert(
+        {
+          couple_id: coupleId,
+          date,
+          from_user: user.id,
+          type: "song",
+          body: dedication?.trim() || null,
+          spotify_track_id: track.id,
+          spotify_track_name: track.name,
+          spotify_artist_name: track.artist,
+          spotify_artwork_url: track.artworkUrl,
+          spotify_preview_url: track.previewUrl,
+          spotify_external_url: track.externalUrl,
+        },
         { onConflict: "couple_id,date,from_user" }
       );
 
@@ -72,6 +113,7 @@ export function useLetter(date: string) {
     sentLetter,
     loading,
     sendLetter,
+    sendSong,
     markAsRead,
     reload: loadLetters,
   };

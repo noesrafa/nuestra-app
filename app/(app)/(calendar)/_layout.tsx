@@ -27,7 +27,21 @@ export default function CalendarLayout() {
         name="letter/[date]"
         options={{
           headerShown: false,
-          presentation: "modal",
+          presentation: "fullScreenModal",
+        }}
+      />
+      <Stack.Screen
+        name="gift/[date]"
+        options={{
+          headerShown: false,
+          presentation: "fullScreenModal",
+        }}
+      />
+      <Stack.Screen
+        name="song/[date]"
+        options={{
+          headerShown: false,
+          presentation: "fullScreenModal",
         }}
       />
     </Stack>

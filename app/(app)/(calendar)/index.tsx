@@ -44,6 +44,7 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [unreadLetterDates, setUnreadLetterDates] = useState<Set<string>>(new Set());
+  const [songArtwork, setSongArtwork] = useState<Map<string, string>>(new Map());
 
   const shareDrawerRef = useRef<BottomSheet>(null);
   const dayDrawerRef = useRef<BottomSheet>(null);
@@ -91,11 +92,33 @@ export default function CalendarScreen() {
     setUnreadLetterDates(new Set(data?.map((l: { date: string }) => l.date) ?? []));
   }
 
+  async function loadSongArtwork() {
+    const startDate = formatDate(year, month, 1);
+    const endDate = formatDate(year, month, getDaysInMonth(year, month));
+
+    const { data } = await supabase
+      .from(DB.TABLES.LETTERS)
+      .select("date, spotify_artwork_url")
+      .eq("type", "song")
+      .not("spotify_artwork_url", "is", null)
+      .gte("date", startDate)
+      .lte("date", endDate);
+
+    const map = new Map<string, string>();
+    for (const row of data ?? []) {
+      if (row.spotify_artwork_url) {
+        map.set(row.date, row.spotify_artwork_url);
+      }
+    }
+    setSongArtwork(map);
+  }
+
   useFocusEffect(
     useCallback(() => {
       loadEntries();
       loadTotalDays();
       loadUnreadLetters();
+      loadSongArtwork();
     }, [year, month, user?.id])
   );
 
@@ -116,7 +139,10 @@ export default function CalendarScreen() {
     loadEntries();
     loadTotalDays();
   });
-  useRealtime(DB.TABLES.LETTERS, loadUnreadLetters);
+  useRealtime(DB.TABLES.LETTERS, () => {
+    loadUnreadLetters();
+    loadSongArtwork();
+  });
   useRealtime(DB.TABLES.COUPLES, () => {
     refetchCouple();
     refetchSpace();
@@ -150,7 +176,7 @@ export default function CalendarScreen() {
 
   async function onRefresh() {
     setRefreshing(true);
-    await Promise.all([loadEntries(), loadTotalDays(), loadUnreadLetters()]);
+    await Promise.all([loadEntries(), loadTotalDays(), loadUnreadLetters(), loadSongArtwork()]);
     setRefreshing(false);
   }
 
@@ -181,6 +207,7 @@ export default function CalendarScreen() {
           month={month}
           entries={entries}
           unreadLetterDates={unreadLetterDates}
+          songArtwork={songArtwork}
           isActive={isActive}
           onPrevMonth={prevMonth}
           onNextMonth={nextMonth}
