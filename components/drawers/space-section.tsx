@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, Alert, StyleSheet } from "react-native";
 import { spacing, SEMANTIC_COLORS } from "@/constants/theme";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
@@ -28,6 +28,17 @@ export function SpaceSection({ onClose, onMutate }: Props) {
     deleteSpaceWithPhotos,
   } = useSpaceActions({ refetchCouple, refetchSpace, onClose, onMutate });
 
+  function confirmPause() {
+    Alert.alert(
+      "¿Tomarse un descanso?",
+      "Se pausará el espacio para los dos. No se borra nada, todo sigue aquí cuando quieran volver. 💛",
+      [
+        { text: "Mejor no", style: "cancel" },
+        { text: "Sí, pausar", style: "destructive", onPress: handlePauseSpace },
+      ],
+    );
+  }
+
   return (
     <>
       <Text style={[styles.sectionTitle, { color: colors.accent }]}>ESPACIO</Text>
@@ -37,7 +48,7 @@ export function SpaceSection({ onClose, onMutate }: Props) {
             icon="pause-circle-outline"
             iconColor={colors.accent}
             text="Tomar un descanso"
-            onPress={handlePauseSpace}
+            onPress={confirmPause}
             loading={spaceLoading}
             disabled={spaceLoading}
           />

@@ -21,24 +21,26 @@ import { formatDisplayDate } from "@/lib/utils";
 
 type Filter = "received" | "sent" | "playlist";
 
-const ROTATIONS = ["-1.5deg", "1deg", "-0.5deg", "1.5deg", "-1deg", "0.8deg"];
+const ROTATIONS = ["-3deg", "2.5deg", "-1.5deg", "3deg", "-2deg", "1.8deg"];
 
 function LetterCard({
   letter,
   index,
   colors,
   signText,
+  tidy,
   onPress,
 }: {
   letter: FeedLetter;
   index: number;
   colors: Record<string, string>;
   signText: string;
+  tidy: boolean;
   onPress: () => void;
 }) {
   const paperBg = colors.cardBg;
   const lineColor = colors.lineColor;
-  const rotation = ROTATIONS[index % ROTATIONS.length];
+  const rotation = tidy ? "0deg" : ROTATIONS[index % ROTATIONS.length];
 
   const isSong = letter.type === "song";
 
@@ -99,7 +101,7 @@ function LetterCard({
 }
 
 export default function LettersFeedScreen() {
-  const { colors } = useTheme();
+  const { colors, layout } = useTheme();
   const { partnerNickname } = useCouple();
   const { letters, loading, reload } = useLettersFeed();
   const [filter, setFilter] = useState<Filter>("received");
@@ -139,21 +141,26 @@ export default function LettersFeedScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]}>
       <Text style={[styles.title, { color: colors.accent }]}>Listas</Text>
 
-      {/* Toggle — underline style */}
-      <View style={styles.toggleRow}>
-        {(["received", "sent", "playlist"] as const).map((f) => (
-          <TouchableOpacity
-            key={f}
-            style={styles.toggleBtn}
-            onPress={() => switchFilter(f)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.toggleText, filter === f ? styles.toggleActive : styles.toggleInactive, { color: colors.accent, opacity: filter === f ? 1 : 0.4 }]}>
-              {f === "received" ? "Recibidas" : f === "sent" ? "Enviadas" : "Playlist"}
-            </Text>
-            {filter === f && <View style={[styles.toggleLine, { backgroundColor: colors.accent }]} />}
-          </TouchableOpacity>
-        ))}
+      {/* Toggle — pill style like Apariencia */}
+      <View style={[styles.toggleCard, { backgroundColor: colors.cardBg }]}>
+        {(["received", "sent", "playlist"] as const).map((f) => {
+          const active = filter === f;
+          return (
+            <TouchableOpacity
+              key={f}
+              style={[
+                styles.toggleBtn,
+                active && [styles.toggleBtnActive, { backgroundColor: colors.background, borderColor: colors.border }],
+              ]}
+              onPress={() => switchFilter(f)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.toggleText, { color: colors.accent, opacity: active ? 1 : 0.5 }]}>
+                {f === "received" ? "Recibidas" : f === "sent" ? "Enviadas" : "Playlist"}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {filter === "received" && unreadCount > 0 && (
@@ -198,6 +205,7 @@ export default function LettersFeedScreen() {
               index={index}
               colors={colors}
               signText={receivedSign}
+              tidy={layout === "tidy"}
               onPress={() => handleLetterPress(item)}
             />
           )}
@@ -227,32 +235,28 @@ const styles = StyleSheet.create({
     fontWeight: "300",
     textAlign: "center",
     paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.md,
   },
-  toggleRow: {
+  toggleCard: {
     flexDirection: "row",
-    justifyContent: "center",
-    gap: spacing.xl,
+    borderRadius: 12,
+    padding: 3,
+    marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
   toggleBtn: {
+    flex: 1,
     alignItems: "center",
-    paddingVertical: spacing.xs,
+    justifyContent: "center",
+    paddingVertical: 8,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: "transparent",
   },
+  toggleBtnActive: {},
   toggleText: {
-    fontSize: 15,
-  },
-  toggleActive: {
+    fontSize: 13,
     fontWeight: "600",
-  },
-  toggleInactive: {
-    fontWeight: "400",
-  },
-  toggleLine: {
-    marginTop: 4,
-    width: 24,
-    height: 2,
-    borderRadius: 1,
   },
   unreadRow: {
     flexDirection: "row",

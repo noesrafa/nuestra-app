@@ -51,6 +51,20 @@ export type Letter = {
   spotify_external_url: string | null;
 };
 
+export type Goal = {
+  id: string;
+  couple_id: string;
+  title: string;
+  category: string | null;
+  due_date: string | null;
+  completed: boolean;
+  completed_by: string | null;
+  completed_at: string | null;
+  created_by: string;
+  position: number;
+  created_at: string;
+};
+
 export type SpotifyTrack = {
   id: string;
   name: string;

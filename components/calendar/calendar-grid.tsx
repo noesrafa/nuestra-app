@@ -79,7 +79,7 @@ function Wheel({ items, selectedIndex, onIndexChange, textColor, accentBg, style
 }
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const GRID_PADDING = spacing.md;
+const GRID_PADDING = spacing.sm;
 const COL_GAP = 2;
 const DAY_WIDTH = (SCREEN_WIDTH - GRID_PADDING * 2 - COL_GAP * 6) / 7;
 const PHOTO_HEIGHT = DAY_WIDTH * 1.5;
@@ -229,7 +229,7 @@ export function CalendarGrid({ year, month, entries, unreadLetterDates, songArtw
                 {artworkUrl ? (
                   <View style={styles.vinylCase}>
                     {/* Vinyl disc peeking out from top */}
-                    <View style={[styles.vinylDisc, { backgroundColor: isDark ? '#1F0B11' : '#1A1A1A' }]}>
+                    <View style={[styles.vinylDisc, { backgroundColor: isDark ? '#141414' : '#1A1A1A' }]}>
                       <View style={styles.vinylGroove}>
                         <View style={styles.vinylHole} />
                       </View>
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     height: (DAY_WIDTH - 16) * 0.6,
     borderRadius: (DAY_WIDTH - 16) * 0.3,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(255,255,255,0.04)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -412,12 +412,12 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "rgba(255,255,255,0.08)",
   },
   albumCover: {
     width: DAY_WIDTH - 8,
     height: DAY_WIDTH - 8,
-    borderRadius: 0,
+    borderRadius: 2,
     zIndex: 1,
   },
   plusIcon: {

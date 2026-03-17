@@ -32,13 +32,21 @@ export default function AppLayout() {
         indicatorColor={colors.accentLight}
         rippleColor={colors.accentLight}
       >
-        <NativeTabs.Trigger name="(calendar)">
+        <NativeTabs.Trigger name="(nosotros)">
           {isIOS ? (
-            <Icon sf={{ default: "calendar" as any, selected: "calendar" as any }} />
+            <Icon sf={{ default: "heart" as any, selected: "heart.fill" as any }} />
           ) : (
-            <Icon src={<VectorIcon family={Ionicons} name="calendar-outline" />} />
+            <Icon src={<VectorIcon family={Ionicons} name="heart-outline" />} />
           )}
-          <Label>Calendario</Label>
+          <Label>Nosotros</Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="(goals)">
+          {isIOS ? (
+            <Icon sf={{ default: "checklist" as any, selected: "checklist" as any }} />
+          ) : (
+            <Icon src={<VectorIcon family={Ionicons} name="checkbox-outline" />} />
+          )}
+          <Label>Metas</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="(letters)">
           {isIOS ? (
@@ -48,13 +56,13 @@ export default function AppLayout() {
           )}
           <Label>Listas</Label>
         </NativeTabs.Trigger>
-        <NativeTabs.Trigger name="(nosotros)">
+        <NativeTabs.Trigger name="(calendar)">
           {isIOS ? (
-            <Icon sf={{ default: "heart" as any, selected: "heart.fill" as any }} />
+            <Icon sf={{ default: "calendar" as any, selected: "calendar" as any }} />
           ) : (
-            <Icon src={<VectorIcon family={Ionicons} name="heart-outline" />} />
+            <Icon src={<VectorIcon family={Ionicons} name="calendar-outline" />} />
           )}
-          <Label>Nosotros</Label>
+          <Label>Calendario</Label>
         </NativeTabs.Trigger>
       </NativeTabs>
     </ThemeProvider>

@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { supabase } from "@/lib/supabase";
-import { spacing, SEMANTIC_COLORS } from "@/constants/theme";
+import { spacing } from "@/constants/theme";
 import { DB } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
@@ -35,15 +36,11 @@ export function AccountSection({ onClose }: Props) {
           text={displayName ?? "Sin nombre"}
           subtext={user?.email ?? ""}
         />
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-        <CardRow
-          icon="log-out-outline"
-          iconColor={SEMANTIC_COLORS.DANGER}
-          text="Cerrar sesión"
-          textColor={SEMANTIC_COLORS.DANGER}
-          onPress={confirmLogout}
-        />
       </View>
+      <TouchableOpacity onPress={confirmLogout} style={styles.logoutButton} activeOpacity={0.5}>
+        <Ionicons name="log-out-outline" size={18} color={colors.accent} style={{ opacity: 0.6 }} />
+        <Text style={[styles.logoutText, { color: colors.accent }]}>Cerrar sesión</Text>
+      </TouchableOpacity>
     </>
   );
 }
@@ -62,8 +59,18 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
   },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 48,
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "center",
+    gap: 6,
+    marginTop: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  logoutText: {
+    fontSize: 15,
+    fontWeight: "500",
+    opacity: 0.6,
   },
 });

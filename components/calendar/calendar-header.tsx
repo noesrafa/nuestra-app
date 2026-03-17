@@ -14,7 +14,7 @@ type Props = {
   onCouplePress: () => void;
 };
 
-const GRID_PADDING = spacing.md;
+const GRID_PADDING = spacing.sm;
 
 export function CalendarHeader({ totalDays, isComplete, avatars, avatarUrl, onSharePress, onCouplePress }: Props) {
   const { colors } = useTheme();
@@ -71,8 +71,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   counterText: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 22,
+    fontWeight: "300",
   },
   coupleButton: {
     width: 44,

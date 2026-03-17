@@ -57,7 +57,7 @@ export function CoupleCard({ isComplete, avatarUrl, inviteCode, avatarsSlot, sta
 
   if (isComplete) {
     return (
-      <View style={[styles.card, { backgroundColor: colors.background }]}>
+      <View style={[styles.card, { backgroundColor: "transparent" }]}>
         {avatarsSlot}
         {statusSlot}
       </View>
