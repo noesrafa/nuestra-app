@@ -12,7 +12,7 @@ const THEME_OPTIONS: { key: ThemeOption; label: string; icon: string }[] = [
 ];
 
 export function ThemeSection() {
-  const { theme, setTheme, colors } = useTheme();
+  const { theme, setTheme, colors, isDark } = useTheme();
 
   function selectTheme(value: ThemeOption) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -21,9 +21,9 @@ export function ThemeSection() {
 
   return (
     <>
-      <Text style={[styles.sectionTitle, { color: colors.accent }]}>Apariencia</Text>
-      <View style={[styles.card, { backgroundColor: colors.background }]}>
-        <View style={[styles.themeRow, { backgroundColor: colors.background }]}>
+      <Text style={[styles.sectionTitle, { color: colors.accent }]}>APARIENCIA</Text>
+      <View style={[styles.card, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}>
+        <View style={[styles.themeRow, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}>
           {THEME_OPTIONS.map((opt) => {
             const active = theme === opt.key;
             return (
@@ -49,13 +49,12 @@ export function ThemeSection() {
 
 const styles = StyleSheet.create({
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
     letterSpacing: 0.5,
-    textTransform: "uppercase",
-    alignSelf: "flex-start",
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
   },
   card: {
     width: "100%",

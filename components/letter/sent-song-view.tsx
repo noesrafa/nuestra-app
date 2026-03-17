@@ -1,31 +1,14 @@
-import { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Modal,
-  Pressable,
-  Dimensions,
-  Linking,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Linking } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useAudioPlayer } from "expo-audio";
-import Reanimated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-  Easing,
-} from "react-native-reanimated";
+import Reanimated from "react-native-reanimated";
 import { spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { useRevealModal } from "@/hooks/use-reveal-modal";
+import { useSongPlayer } from "@/hooks/use-song-player";
+import { RevealModal } from "@/components/letter/reveal-modal";
 import type { Letter } from "@/lib/types";
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 type Props = {
   letter: Letter;
@@ -33,98 +16,19 @@ type Props = {
 
 export function SentSongView({ letter }: Props) {
   const { colors, isDark } = useTheme();
-  const [open, setOpen] = useState(false);
+  const modal = useRevealModal(Haptics.ImpactFeedbackStyle.Light);
+  const song = useSongPlayer(letter.spotify_preview_url, letter.spotify_track_id, modal.open);
   const wasRead = !!letter.read_at;
 
-  const [previewUrl, setPreviewUrl] = useState<string | null>(letter.spotify_preview_url);
-  const player = useAudioPlayer(previewUrl ? { uri: previewUrl } : null);
-
-  // Vinyl rotation
-  const rotation = useSharedValue(0);
-
-  useEffect(() => {
-    if (open) {
-      rotation.value = withRepeat(
-        withTiming(360, { duration: 8000, easing: Easing.linear }),
-        -1,
-        false
-      );
-    } else {
-      rotation.value = 0;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  const vinylStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
-  }));
-
-  // Auto-play when modal opens and player is ready
-  useEffect(() => {
-    if (open && player && previewUrl) {
-      try {
-        player.seekTo(0);
-        player.play();
-      } catch {
-        // Preview not available
-      }
-    }
-  }, [open, player, previewUrl]);
-
-  const progress = useRef(new Animated.Value(0)).current;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-
   async function handleOpen() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setOpen(true);
-    progress.setValue(0);
-    overlayOpacity.setValue(0);
-
-    Animated.parallel([
-      Animated.timing(overlayOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.spring(progress, { toValue: 1, tension: 50, friction: 9, useNativeDriver: true }),
-    ]).start();
-
-    // Try to fetch preview URL if we don't have one
-    if (!previewUrl && letter.spotify_track_id) {
-      try {
-        const embedRes = await fetch(
-          `https://open.spotify.com/embed/track/${letter.spotify_track_id}`,
-          { headers: { Accept: "text/html" } }
-        );
-        if (embedRes.ok) {
-          const html = await embedRes.text();
-          const match = html.match(/"audioPreview":\s*\{[^}]*"url":\s*"([^"]+)"/);
-          if (match?.[1]) {
-            setPreviewUrl(match[1]);
-          }
-        }
-      } catch {
-        // No preview available
-      }
-    }
+    modal.handleOpen();
+    await song.fetchPreview();
   }
 
   function handleClose() {
-    if (player) {
-      player.pause();
-    }
-
-    Animated.parallel([
-      Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(progress, { toValue: 0, duration: 250, useNativeDriver: true }),
-    ]).start(() => setOpen(false));
+    song.pause();
+    modal.handleClose();
   }
-
-  function openSpotify() {
-    if (letter.spotify_external_url) {
-      Linking.openURL(letter.spotify_external_url);
-    }
-  }
-
-  const cardScale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] });
-  const cardTranslateY = progress.interpolate({ inputRange: [0, 1], outputRange: [SCREEN_HEIGHT * 0.15, 0] });
-  const cardOpacity = progress.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] });
 
   return (
     <>
@@ -141,82 +45,63 @@ export function SentSongView({ letter }: Props) {
         )}
       </TouchableOpacity>
 
-      <Modal visible={open} transparent statusBarTranslucent onRequestClose={handleClose}>
-        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+      <RevealModal
+        open={modal.open}
+        overlayOpacity={modal.overlayOpacity}
+        cardStyle={modal.cardStyle}
+        onClose={handleClose}
+        header={
+          <View style={[styles.badge, { backgroundColor: wasRead ? colors.accent : colors.accentLight }]}>
+            <Ionicons
+              name={wasRead ? "checkmark-done" : "time-outline"}
+              size={14}
+              color={wasRead ? "#FFFFFF" : colors.accent}
+            />
+            <Text style={[styles.badgeText, { color: wasRead ? "#FFFFFF" : colors.accent }]}>
+              {wasRead ? "Ya la escuchó" : "Aún no la abre"}
+            </Text>
+          </View>
+        }
+      >
+        <View style={[styles.content, { backgroundColor: isDark ? "#2A1520" : "#FFF8F0" }]}>
+          <Reanimated.View style={[styles.vinylWrap, song.vinylStyle]}>
+            <Image
+              source={{ uri: letter.spotify_artwork_url ?? undefined }}
+              style={styles.artwork}
+              contentFit="cover"
+              transition={300}
+            />
+          </Reanimated.View>
 
-          <Animated.View
-            style={[
-              styles.cardWrapper,
-              {
-                transform: [{ scale: cardScale }, { translateY: cardTranslateY }],
-                opacity: cardOpacity,
-              },
-            ]}
-          >
-            {/* Status badge */}
-            <View style={[styles.badge, { backgroundColor: wasRead ? colors.accent : colors.accentLight }]}>
-              <Ionicons
-                name={wasRead ? "checkmark-done" : "time-outline"}
-                size={14}
-                color={wasRead ? "#FFFFFF" : colors.accent}
-              />
-              <Text style={[styles.badgeText, { color: wasRead ? "#FFFFFF" : colors.accent }]}>
-                {wasRead ? "Ya la escuchó" : "Aún no la abre"}
-              </Text>
-            </View>
+          <Text style={[styles.trackName, { color: colors.text }]}>
+            {letter.spotify_track_name}
+          </Text>
+          <Text style={[styles.artistName, { color: colors.textSecondary }]}>
+            {letter.spotify_artist_name}
+          </Text>
 
-            {/* Content */}
-            <View style={[styles.content, { backgroundColor: isDark ? "#2A1520" : "#FFF8F0" }]}>
-              {/* Vinyl artwork */}
-              <Reanimated.View style={[styles.vinylWrap, vinylStyle]}>
-                <Image
-                  source={{ uri: letter.spotify_artwork_url ?? undefined }}
-                  style={styles.artwork}
-                  contentFit="cover"
-                  transition={300}
-                />
-              </Reanimated.View>
+          {letter.body ? (
+            <Text style={[styles.dedication, { color: colors.text }]}>
+              {`\u201C${letter.body}\u201D`}
+            </Text>
+          ) : null}
 
-              <Text style={[styles.trackName, { color: colors.text }]}>
-                {letter.spotify_track_name}
-              </Text>
-              <Text style={[styles.artistName, { color: colors.textSecondary }]}>
-                {letter.spotify_artist_name}
-              </Text>
+          <View style={styles.signRow}>
+            <View style={[styles.signLine, { backgroundColor: colors.accent }]} />
+            <Text style={[styles.signText, { color: colors.accent }]}>tu canción</Text>
+          </View>
 
-              {letter.body ? (
-                <Text style={[styles.dedication, { color: colors.text }]}>
-                  {`\u201C${letter.body}\u201D`}
-                </Text>
-              ) : null}
-
-              <View style={styles.signRow}>
-                <View style={[styles.signLine, { backgroundColor: colors.accent }]} />
-                <Text style={[styles.signText, { color: colors.accent }]}>tu canción</Text>
-              </View>
-
-              {letter.spotify_external_url && (
-                <TouchableOpacity
-                  style={[styles.spotifyButton, { backgroundColor: "#1DB954" }]}
-                  onPress={openSpotify}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.spotifyButtonText}>Abrir en Spotify</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
+          {letter.spotify_external_url && (
             <TouchableOpacity
-              style={[styles.closeButton, { backgroundColor: colors.accent }]}
-              onPress={handleClose}
+              style={[styles.spotifyButton, { backgroundColor: "#1DB954" }]}
+              onPress={() => Linking.openURL(letter.spotify_external_url!)}
               activeOpacity={0.8}
             >
-              <Ionicons name="close" size={20} color="#FFFFFF" />
+              <Text style={styles.spotifyButtonText}>Abrir en Spotify</Text>
             </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
-      </Modal>
+          )}
+        </View>
+      </RevealModal>
     </>
   );
 }
@@ -238,16 +123,6 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     alignItems: "center",
     justifyContent: "center",
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardWrapper: {
-    width: "82%",
-    alignItems: "center",
   },
   badge: {
     flexDirection: "row",
@@ -334,18 +209,5 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "600",
-  },
-  closeButton: {
-    marginTop: spacing.md,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
   },
 });

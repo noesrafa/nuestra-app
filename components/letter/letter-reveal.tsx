@@ -1,24 +1,12 @@
-import { useState, useRef } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  Animated,
-  Modal,
-  Pressable,
-  Dimensions,
-} from "react-native";
+import { View, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import { spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useCouple } from "@/hooks/use-couple";
+import { useRevealModal } from "@/hooks/use-reveal-modal";
+import { RevealModal } from "@/components/letter/reveal-modal";
+import { LetterPaper } from "@/components/letter/letter-paper";
 import { GiftButton } from "@/components/letter/gift-button";
 import type { Letter } from "@/lib/types";
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 type Props = {
   letter: Letter;
@@ -26,107 +14,39 @@ type Props = {
 };
 
 export function LetterReveal({ letter, onRead }: Props) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { partnerNickname } = useCouple();
-  const [open, setOpen] = useState(false);
-  const isUnread = !letter.read_at;
-  const signText = partnerNickname || "con amor";
+  const modal = useRevealModal();
 
-  const progress = useRef(new Animated.Value(0)).current;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const isUnread = !letter.read_at;
 
   function handleOpen() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    setOpen(true);
+    modal.handleOpen();
     onRead();
-
-    progress.setValue(0);
-    overlayOpacity.setValue(0);
-
-    Animated.parallel([
-      Animated.timing(overlayOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.spring(progress, { toValue: 1, tension: 50, friction: 9, useNativeDriver: true }),
-    ]).start();
   }
-
-  function handleClose() {
-    Animated.parallel([
-      Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(progress, { toValue: 0, duration: 250, useNativeDriver: true }),
-    ]).start(() => setOpen(false));
-  }
-
-  const paperBg = isDark ? "#2A1520" : "#FFF8F0";
-
-  const cardScale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] });
-  const cardTranslateY = progress.interpolate({ inputRange: [0, 1], outputRange: [SCREEN_HEIGHT * 0.15, 0] });
-  const cardOpacity = progress.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1] });
 
   return (
     <>
       <GiftButton isUnread={isUnread} onPress={handleOpen} />
 
-      <Modal visible={open} transparent statusBarTranslucent onRequestClose={handleClose}>
-        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
-
-          <Animated.View
-            style={[
-              styles.cardWrapper,
-              {
-                transform: [{ scale: cardScale }, { translateY: cardTranslateY }],
-                opacity: cardOpacity,
-              },
-            ]}
-          >
-            {/* Heart seal at top */}
-            <View style={[styles.seal, { backgroundColor: colors.accent }]}>
-              <Ionicons name="heart" size={16} color="#FFFFFF" />
-            </View>
-
-            {/* Letter paper */}
-            <ScrollView
-              style={[styles.paperScroll, { backgroundColor: paperBg }]}
-              contentContainerStyle={styles.paperContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <Text style={[styles.letterBody, { color: colors.text }]}>
-                {letter.body}
-              </Text>
-
-              <View style={styles.signRow}>
-                <View style={[styles.signLine, { backgroundColor: colors.accent }]} />
-                <Text style={[styles.letterSign, { color: colors.accent }]}>
-                  {signText}
-                </Text>
-              </View>
-            </ScrollView>
-
-            <TouchableOpacity
-              style={[styles.closeButton, { backgroundColor: colors.accent }]}
-              onPress={handleClose}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="close" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
-      </Modal>
+      <RevealModal
+        open={modal.open}
+        overlayOpacity={modal.overlayOpacity}
+        cardStyle={modal.cardStyle}
+        onClose={() => modal.handleClose()}
+        header={
+          <View style={[styles.seal, { backgroundColor: colors.accent }]}>
+            <Ionicons name="heart" size={16} color="#FFFFFF" />
+          </View>
+        }
+      >
+        <LetterPaper body={letter.body} signText={partnerNickname || "con amor"} />
+      </RevealModal>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardWrapper: {
-    width: "82%",
-    alignItems: "center",
-  },
   seal: {
     width: 40,
     height: 40,
@@ -135,55 +55,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: -20,
     zIndex: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  paperScroll: {
-    width: "100%",
-    borderRadius: 16,
-    maxHeight: SCREEN_HEIGHT * 0.55,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  paperContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl + spacing.sm,
-    paddingBottom: spacing.lg,
-    minHeight: 200,
-  },
-  letterBody: {
-    fontSize: 18,
-    lineHeight: 30,
-    fontStyle: "italic",
-  },
-  signRow: {
-    alignItems: "flex-end",
-    marginTop: spacing.lg,
-    gap: spacing.xs,
-  },
-  signLine: {
-    width: 40,
-    height: 1,
-    opacity: 0.3,
-  },
-  letterSign: {
-    fontSize: 13,
-    fontStyle: "italic",
-    fontWeight: "500",
-  },
-  closeButton: {
-    marginTop: spacing.md,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,

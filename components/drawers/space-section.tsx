@@ -14,7 +14,7 @@ type Props = {
 
 export function SpaceSection({ onClose, onMutate }: Props) {
   const { user } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { refetch: refetchCouple } = useCouple();
   const {
     isActive, isPaused, isPendingDelete,
@@ -31,7 +31,7 @@ export function SpaceSection({ onClose, onMutate }: Props) {
   return (
     <>
       <Text style={[styles.sectionTitle, { color: colors.accent }]}>ESPACIO</Text>
-      <View style={[styles.card, { backgroundColor: colors.background }]}>
+      <View style={[styles.card, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}>
         {isActive && (
           <CardRow
             icon="pause-circle-outline"
@@ -111,13 +111,12 @@ export function SpaceSection({ onClose, onMutate }: Props) {
 
 const styles = StyleSheet.create({
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
     letterSpacing: 0.5,
-    textTransform: "uppercase",
-    alignSelf: "flex-start",
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
   },
   card: {
     width: "100%",

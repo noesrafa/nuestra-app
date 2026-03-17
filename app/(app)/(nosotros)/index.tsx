@@ -108,7 +108,8 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "700",
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: -4,
+    marginTop: -8,
   },
   statusSub: {
     fontSize: 14,

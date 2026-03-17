@@ -14,11 +14,18 @@ export function useEntryManager(date: string, onChanged?: () => void) {
   const [title, setTitle] = useState(formatDisplayDate(date));
   const [notes, setNotes] = useState("");
   const [hearts, setHearts] = useState(0);
+
+  // Refs to avoid stale closures in timeouts
+  const entryRef = useRef<Entry | null>(null);
+  const onChangedRef = useRef(onChanged);
+  onChangedRef.current = onChanged;
+
   const heartsRef = useRef(0);
   const heartTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const heartCooldown = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const lastDate = useRef(date);
+
   if (lastDate.current !== date) {
     lastDate.current = date;
     setLoading(true);
@@ -36,6 +43,8 @@ export function useEntryManager(date: string, onChanged?: () => void) {
     }
 
     setEntry(data);
+    entryRef.current = data;
+
     if (data) {
       setTitle(data.title);
       setNotes(data.notes ?? "");
@@ -62,24 +71,25 @@ export function useEntryManager(date: string, onChanged?: () => void) {
   function debounceSave(updates: Record<string, unknown>) {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      if (entry) {
+      const current = entryRef.current;
+      if (current) {
         await supabase
           .from(DB.TABLES.ENTRIES)
           .update(updates)
-          .eq("id", entry.id);
-        onChanged?.();
+          .eq("id", current.id);
+        onChangedRef.current?.();
       }
     }, APP.DEBOUNCE_SAVE_MS);
   }
 
   function onTitleChange(text: string) {
     setTitle(text);
-    if (entry) debounceSave({ title: text });
+    if (entryRef.current) debounceSave({ title: text });
   }
 
   function onNotesChange(text: string) {
     setNotes(text);
-    if (entry) debounceSave({ notes: text });
+    if (entryRef.current) debounceSave({ notes: text });
   }
 
   function onHeartTap() {
@@ -90,11 +100,12 @@ export function useEntryManager(date: string, onChanged?: () => void) {
 
     if (heartTimer.current) clearTimeout(heartTimer.current);
     heartTimer.current = setTimeout(async () => {
-      if (entry) {
+      const current = entryRef.current;
+      if (current) {
         await supabase
           .from(DB.TABLES.ENTRIES)
           .update({ hearts: heartsRef.current })
-          .eq("id", entry.id);
+          .eq("id", current.id);
       }
       heartCooldown.current = false;
     }, 800);
@@ -108,13 +119,15 @@ export function useEntryManager(date: string, onChanged?: () => void) {
         text: "Sí, borrar",
         style: "destructive",
         onPress: async () => {
-          if (!entry) return;
-          await supabase.from(DB.TABLES.ENTRIES).delete().eq("id", entry.id);
+          const current = entryRef.current;
+          if (!current) return;
+          await supabase.from(DB.TABLES.ENTRIES).delete().eq("id", current.id);
           setEntry(null);
+          entryRef.current = null;
           setTitle(formatDisplayDate(date));
           setNotes("");
           setHearts(0);
-          onChanged?.();
+          onChangedRef.current?.();
         },
       },
     ]);
