@@ -16,10 +16,8 @@ import { formatDisplayDate } from "@/lib/utils";
 
 export default function GiftSelectorScreen() {
   const { date } = useLocalSearchParams<{ date: string }>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { isConnected, connect } = useSpotifyAuth();
-
-  const paperBg = isDark ? "#2A1520" : "#FFF8F0";
 
   function handleLetter() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -62,7 +60,7 @@ export default function GiftSelectorScreen() {
       <View style={styles.cardsRow}>
         {/* Cartita */}
         <TouchableOpacity
-          style={[styles.card, { backgroundColor: paperBg }]}
+          style={[styles.card, { backgroundColor: colors.paper }]}
           onPress={handleLetter}
           activeOpacity={0.8}
         >
@@ -77,7 +75,7 @@ export default function GiftSelectorScreen() {
 
         {/* Canción */}
         <TouchableOpacity
-          style={[styles.card, { backgroundColor: paperBg }]}
+          style={[styles.card, { backgroundColor: colors.paper }]}
           onPress={handleSong}
           activeOpacity={0.8}
         >

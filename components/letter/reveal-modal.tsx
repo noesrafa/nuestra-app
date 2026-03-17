@@ -38,7 +38,7 @@ export function RevealModal({ open, overlayOpacity, cardStyle, onClose, header, 
             onPress={onClose}
             activeOpacity={0.8}
           >
-            <Ionicons name="close" size={20} color="#FFFFFF" />
+            <Ionicons name="close" size={20} color={colors.textOnAccent} />
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>

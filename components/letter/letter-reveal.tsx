@@ -36,7 +36,7 @@ export function LetterReveal({ letter, onRead }: Props) {
         onClose={() => modal.handleClose()}
         header={
           <View style={[styles.seal, { backgroundColor: colors.accent }]}>
-            <Ionicons name="heart" size={16} color="#FFFFFF" />
+            <Ionicons name="heart" size={16} color={colors.textOnAccent} />
           </View>
         }
       >

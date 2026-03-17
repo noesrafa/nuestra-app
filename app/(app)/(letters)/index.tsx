@@ -27,19 +27,17 @@ function LetterCard({
   letter,
   index,
   colors,
-  isDark,
   signText,
   onPress,
 }: {
   letter: FeedLetter;
   index: number;
   colors: Record<string, string>;
-  isDark: boolean;
   signText: string;
   onPress: () => void;
 }) {
-  const paperBg = isDark ? colors.accentLight : "#FFFFFF";
-  const lineColor = isDark ? "rgba(212,99,138,0.10)" : "rgba(139,34,82,0.06)";
+  const paperBg = colors.cardBg;
+  const lineColor = colors.lineColor;
   const rotation = ROTATIONS[index % ROTATIONS.length];
 
   const isSong = letter.type === "song";
@@ -101,7 +99,7 @@ function LetterCard({
 }
 
 export default function LettersFeedScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { partnerNickname } = useCouple();
   const { letters, loading, reload } = useLettersFeed();
   const [filter, setFilter] = useState<Filter>("received");
@@ -203,7 +201,6 @@ export default function LettersFeedScreen() {
               letter={item}
               index={index}
               colors={colors}
-              isDark={isDark}
               signText={receivedSign}
               onPress={() => handleLetterPress(item)}
             />

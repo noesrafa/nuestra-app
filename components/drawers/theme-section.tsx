@@ -12,7 +12,7 @@ const THEME_OPTIONS: { key: ThemeOption; label: string; icon: string }[] = [
 ];
 
 export function ThemeSection() {
-  const { theme, setTheme, colors, isDark } = useTheme();
+  const { theme, setTheme, colors } = useTheme();
 
   function selectTheme(value: ThemeOption) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -22,8 +22,8 @@ export function ThemeSection() {
   return (
     <>
       <Text style={[styles.sectionTitle, { color: colors.accent }]}>APARIENCIA</Text>
-      <View style={[styles.card, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}>
-        <View style={[styles.themeRow, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}>
+      <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
+        <View style={[styles.themeRow, { backgroundColor: colors.cardBg }]}>
           {THEME_OPTIONS.map((opt) => {
             const active = theme === opt.key;
             return (

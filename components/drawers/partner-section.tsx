@@ -7,7 +7,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useCouple } from "@/hooks/use-couple";
 
 export function PartnerSection() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { partnerNickname, setPartnerNickname } = useCouple();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -31,7 +31,7 @@ export function PartnerSection() {
       <Text style={[styles.sectionTitle, { color: colors.accent }]}>MI PERSONA FAVORITA</Text>
 
       <TouchableOpacity
-        style={[styles.row, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}
+        style={[styles.row, { backgroundColor: colors.cardBg }]}
         onPress={editing ? undefined : startEditing}
         activeOpacity={editing ? 1 : 0.7}
       >

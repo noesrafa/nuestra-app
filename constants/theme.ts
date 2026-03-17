@@ -10,6 +10,11 @@ export const colors = {
   hasPhoto: "#8B2252",
   gradientStart: "#B8446A",
   gradientEnd: "#8B2252",
+  paper: "#FFF8F0",
+  textOnAccent: "#FFFFFF",
+  cardBg: "#FFFFFF",
+  inputBg: "#F5F5F5",
+  lineColor: "rgba(139,34,82,0.06)",
 };
 
 export type ColorPalette = typeof colors;
@@ -27,6 +32,11 @@ export const palettes: Record<"rosa" | "dark", ColorPalette> = {
     hasPhoto: "#8B2252",
     gradientStart: "#B8446A",
     gradientEnd: "#8B2252",
+    paper: "#FFF8F0",
+    textOnAccent: "#FFFFFF",
+    cardBg: "#FFFFFF",
+    inputBg: "#F5F5F5",
+    lineColor: "rgba(139,34,82,0.06)",
   },
   dark: {
     background: "#1A0A10",
@@ -40,6 +50,11 @@ export const palettes: Record<"rosa" | "dark", ColorPalette> = {
     hasPhoto: "#D4638A",
     gradientStart: "#D4638A",
     gradientEnd: "#8B2252",
+    paper: "#2A1520",
+    textOnAccent: "#FFFFFF",
+    cardBg: "#3D2030",
+    inputBg: "#3D2030",
+    lineColor: "rgba(212,99,138,0.12)",
   },
 };
 
@@ -49,6 +64,10 @@ export const spacing = {
   md: 16,
   lg: 24,
   xl: 32,
+} as const;
+
+export const BRAND_COLORS = {
+  SPOTIFY: "#1DB954",
 } as const;
 
 export const SEMANTIC_COLORS = {

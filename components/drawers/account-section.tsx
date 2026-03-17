@@ -15,7 +15,7 @@ type Props = {
 export function AccountSection({ onClose }: Props) {
   const { user } = useAuth();
   const { displayName } = useProfile(user?.id);
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   async function confirmLogout() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -29,7 +29,7 @@ export function AccountSection({ onClose }: Props) {
   return (
     <>
       <Text style={[styles.sectionTitle, { color: colors.accent }]}>CUENTA</Text>
-      <View style={[styles.card, { backgroundColor: isDark ? colors.accentLight : "#FFFFFF" }]}>
+      <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
         <CardRow
           icon="person-outline"
           text={displayName ?? "Sin nombre"}

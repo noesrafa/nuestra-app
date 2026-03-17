@@ -83,7 +83,7 @@ export function CoupleCard({ isComplete, avatarUrl, inviteCode, avatarsSlot, sta
           />
           <GradientButton
             label="¡Conectarnos!"
-            icon={<Ionicons name="heart" size={18} color="#FFFFFF" />}
+            icon={<Ionicons name="heart" size={18} color={colors.textOnAccent} />}
             onPress={joinCouple}
             loading={loading}
           />
@@ -115,7 +115,7 @@ export function CoupleCard({ isComplete, avatarUrl, inviteCode, avatarsSlot, sta
           {codeCopied && <Text style={[styles.hint, { color: colors.accent, opacity: 0.6 }]}>Mándaselo a tu amor</Text>}
           <GradientButton
             label="Ya tengo un código"
-            icon={<Ionicons name="heart" size={18} color="#FFFFFF" />}
+            icon={<Ionicons name="heart" size={18} color={colors.textOnAccent} />}
             onPress={() => setCoupleMode("join")}
           />
         </>

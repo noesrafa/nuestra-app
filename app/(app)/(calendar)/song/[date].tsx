@@ -26,7 +26,7 @@ type Step = "search" | "dedicate";
 
 export default function SongScreen() {
   const { date } = useLocalSearchParams<{ date: string }>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { results, searching, search, clear } = useSpotifySearch();
   const { sendSong } = useLetter(date);
 
@@ -35,8 +35,6 @@ export default function SongScreen() {
   const [selectedTrack, setSelectedTrack] = useState<SpotifyTrack | null>(null);
   const [dedication, setDedication] = useState("");
   const [sending, setSending] = useState(false);
-
-  const paperBg = isDark ? "#2A1520" : "#FFF8F0";
 
   function handleSearch(text: string) {
     setQuery(text);
@@ -132,7 +130,7 @@ export default function SongScreen() {
           </Text>
 
           {/* Dedication input */}
-          <View style={[styles.dedicationBox, { backgroundColor: paperBg }]}>
+          <View style={[styles.dedicationBox, { backgroundColor: colors.paper }]}>
             <TextInput
               style={[styles.dedicationInput, { color: colors.text }]}
               placeholder="Dedícale unas palabras... (opcional)"
@@ -158,8 +156,8 @@ export default function SongScreen() {
             disabled={sending}
             activeOpacity={0.8}
           >
-            <Ionicons name="musical-notes" size={18} color="#FFFFFF" />
-            <Text style={styles.sendText}>
+            <Ionicons name="musical-notes" size={18} color={colors.textOnAccent} />
+            <Text style={[styles.sendText, { color: colors.textOnAccent }]}>
               {sending ? "Enviando..." : "Enviar con amor"}
             </Text>
           </TouchableOpacity>
@@ -183,7 +181,7 @@ export default function SongScreen() {
       </Text>
 
       {/* Search bar */}
-      <View style={[styles.searchBar, { backgroundColor: isDark ? colors.accentLight : "#F5F5F5" }]}>
+      <View style={[styles.searchBar, { backgroundColor: colors.inputBg }]}>
         <Ionicons name="search" size={18} color={colors.textSecondary} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
@@ -369,7 +367,6 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   sendText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
   },

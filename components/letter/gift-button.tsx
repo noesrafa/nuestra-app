@@ -55,7 +55,7 @@ export function GiftButton({ isUnread, onPress }: Props) {
         <Ionicons name="gift" size={22} color={colors.accent} />
         {isUnread && (
           <Animated.View style={[styles.unreadBadge, { backgroundColor: colors.accent, opacity: heartOpacity }]}>
-            <Ionicons name="heart" size={7} color="#FFFFFF" />
+            <Ionicons name="heart" size={7} color={colors.textOnAccent} />
           </Animated.View>
         )}
       </Animated.View>

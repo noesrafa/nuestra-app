@@ -27,7 +27,7 @@ export function SentLetterView({ letter }: Props) {
         <Ionicons name="mail" size={20} color={colors.accent} />
         {wasRead && (
           <View style={[styles.readCheck, { backgroundColor: colors.accent }]}>
-            <Ionicons name="checkmark" size={8} color="#FFFFFF" />
+            <Ionicons name="checkmark" size={8} color={colors.textOnAccent} />
           </View>
         )}
       </TouchableOpacity>
@@ -42,9 +42,9 @@ export function SentLetterView({ letter }: Props) {
             <Ionicons
               name={wasRead ? "checkmark-done" : "time-outline"}
               size={14}
-              color={wasRead ? "#FFFFFF" : colors.accent}
+              color={wasRead ? colors.textOnAccent : colors.accent}
             />
-            <Text style={[styles.badgeText, { color: wasRead ? "#FFFFFF" : colors.accent }]}>
+            <Text style={[styles.badgeText, { color: wasRead ? colors.textOnAccent : colors.accent }]}>
               {wasRead ? "Ya la leyó" : "Aún no la abre"}
             </Text>
           </View>

@@ -24,15 +24,15 @@ function daysTogether(dateStr: string | null): number {
 }
 
 export function ShareDrawerContent() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { avatars } = useCouple();
   const { stats, loading } = useCoupleStats();
   const viewShotRef = useRef<ViewShot>(null);
   const [sharing, setSharing] = useState(false);
 
   const days = daysTogether(stats.sinceDate);
-  const cardBg = isDark ? "#2A1520" : "#FFF8F0";
-  const cardAccent = isDark ? "#F094AE" : "#8B2252";
+  const cardBg = colors.paper;
+  const cardAccent = colors.accent;
 
   async function handleShare() {
     if (!viewShotRef.current?.capture) return;
@@ -129,11 +129,11 @@ export function ShareDrawerContent() {
         activeOpacity={0.8}
       >
         {sharing ? (
-          <ActivityIndicator color="#FFFFFF" size="small" />
+          <ActivityIndicator color={colors.textOnAccent} size="small" />
         ) : (
           <>
-            <Ionicons name="share-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.shareText}>Compartir</Text>
+            <Ionicons name="share-outline" size={18} color={colors.textOnAccent} />
+            <Text style={[styles.shareText, { color: colors.textOnAccent }]}>Compartir</Text>
           </>
         )}
       </TouchableOpacity>
@@ -248,7 +248,6 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   shareText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
   },

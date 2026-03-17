@@ -20,13 +20,10 @@ import { formatDisplayDate } from "@/lib/utils";
 
 export default function LetterScreen() {
   const { date } = useLocalSearchParams<{ date: string }>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { sentLetter, sendLetter } = useLetter(date);
   const [body, setBody] = useState(sentLetter?.body ?? "");
   const [sending, setSending] = useState(false);
-
-  const paperBg = isDark ? "#2A1520" : "#FFF8F0";
-  const lineColor = isDark ? "rgba(212,99,138,0.15)" : "rgba(139,34,82,0.08)";
 
   async function handleSend() {
     const trimmed = body.trim();
@@ -69,14 +66,14 @@ export default function LetterScreen() {
           {formatDisplayDate(date)}
         </Text>
 
-        <View style={[styles.paper, { backgroundColor: paperBg }]}>
+        <View style={[styles.paper, { backgroundColor: colors.paper }]}>
           {/* Decorative lines */}
           {Array.from({ length: 12 }).map((_, i) => (
             <View
               key={i}
               style={[
                 styles.line,
-                { top: 48 + i * 32, backgroundColor: lineColor },
+                { top: 48 + i * 32, backgroundColor: colors.lineColor },
               ]}
             />
           ))}
@@ -104,8 +101,8 @@ export default function LetterScreen() {
           disabled={!body.trim() || sending}
           activeOpacity={0.8}
         >
-          <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
-          <Text style={styles.sendText}>
+          <Ionicons name="paper-plane" size={18} color={colors.textOnAccent} />
+          <Text style={[styles.sendText, { color: colors.textOnAccent }]}>
             {sending ? "Enviando..." : "Enviar con amor"}
           </Text>
         </TouchableOpacity>
@@ -190,7 +187,6 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   sendText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
   },

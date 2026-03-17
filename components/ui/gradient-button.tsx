@@ -27,10 +27,10 @@ export function GradientButton({ onPress, label, icon, loading, disabled }: Prop
         style={styles.gradient}
       >
         {loading ? (
-          <ActivityIndicator color="#FFFFFF" size="small" />
+          <ActivityIndicator color={colors.textOnAccent} size="small" />
         ) : (
           <View style={styles.inner}>
-            <Text style={styles.text}>{label}</Text>
+            <Text style={[styles.text, { color: colors.textOnAccent }]}>{label}</Text>
             {icon}
           </View>
         )}
@@ -58,7 +58,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   text: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },

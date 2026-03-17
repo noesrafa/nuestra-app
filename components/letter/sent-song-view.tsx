@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Reanimated from "react-native-reanimated";
-import { spacing } from "@/constants/theme";
+import { spacing, BRAND_COLORS } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useRevealModal } from "@/hooks/use-reveal-modal";
 import { useSongPlayer } from "@/hooks/use-song-player";
@@ -15,7 +15,7 @@ type Props = {
 };
 
 export function SentSongView({ letter }: Props) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const modal = useRevealModal(Haptics.ImpactFeedbackStyle.Light);
   const song = useSongPlayer(letter.spotify_preview_url, letter.spotify_track_id, modal.open);
   const wasRead = !!letter.read_at;
@@ -40,7 +40,7 @@ export function SentSongView({ letter }: Props) {
         <Ionicons name="musical-notes" size={20} color={colors.accent} />
         {wasRead && (
           <View style={[styles.readCheck, { backgroundColor: colors.accent }]}>
-            <Ionicons name="checkmark" size={8} color="#FFFFFF" />
+            <Ionicons name="checkmark" size={8} color={colors.textOnAccent} />
           </View>
         )}
       </TouchableOpacity>
@@ -55,15 +55,15 @@ export function SentSongView({ letter }: Props) {
             <Ionicons
               name={wasRead ? "checkmark-done" : "time-outline"}
               size={14}
-              color={wasRead ? "#FFFFFF" : colors.accent}
+              color={wasRead ? colors.textOnAccent : colors.accent}
             />
-            <Text style={[styles.badgeText, { color: wasRead ? "#FFFFFF" : colors.accent }]}>
+            <Text style={[styles.badgeText, { color: wasRead ? colors.textOnAccent : colors.accent }]}>
               {wasRead ? "Ya la escuchó" : "Aún no la abre"}
             </Text>
           </View>
         }
       >
-        <View style={[styles.content, { backgroundColor: isDark ? "#2A1520" : "#FFF8F0" }]}>
+        <View style={[styles.content, { backgroundColor: colors.paper }]}>
           <Reanimated.View style={[styles.vinylWrap, song.vinylStyle]}>
             <Image
               source={{ uri: letter.spotify_artwork_url ?? undefined }}
@@ -93,11 +93,11 @@ export function SentSongView({ letter }: Props) {
 
           {letter.spotify_external_url && (
             <TouchableOpacity
-              style={[styles.spotifyButton, { backgroundColor: "#1DB954" }]}
+              style={[styles.spotifyButton, { backgroundColor: BRAND_COLORS.SPOTIFY }]}
               onPress={() => Linking.openURL(letter.spotify_external_url!)}
               activeOpacity={0.8}
             >
-              <Text style={styles.spotifyButtonText}>Abrir en Spotify</Text>
+              <Text style={[styles.spotifyButtonText, { color: colors.textOnAccent }]}>Abrir en Spotify</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -206,7 +206,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   spotifyButtonText: {
-    color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "600",
   },

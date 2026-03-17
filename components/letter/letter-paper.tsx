@@ -10,21 +10,18 @@ type Props = {
 };
 
 export function LetterPaper({ body, signText }: Props) {
-  const { colors, isDark } = useTheme();
-
-  const paperBg = isDark ? "#2A1520" : "#FFF8F0";
-  const lineColor = isDark ? "rgba(212,99,138,0.12)" : "rgba(139,34,82,0.06)";
+  const { colors } = useTheme();
 
   return (
     <ScrollView
-      style={[styles.paper, { backgroundColor: paperBg }]}
+      style={[styles.paper, { backgroundColor: colors.paper }]}
       contentContainerStyle={styles.paperContent}
       showsVerticalScrollIndicator={false}
     >
       {Array.from({ length: 10 }).map((_, i) => (
         <View
           key={i}
-          style={[styles.line, { top: 24 + i * 30, backgroundColor: lineColor }]}
+          style={[styles.line, { top: 24 + i * 30, backgroundColor: colors.lineColor }]}
         />
       ))}
 

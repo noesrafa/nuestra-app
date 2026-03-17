@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Linking } from "react-native"
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import Reanimated from "react-native-reanimated";
-import { spacing } from "@/constants/theme";
+import { spacing, BRAND_COLORS } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useCouple } from "@/hooks/use-couple";
 import { useRevealModal } from "@/hooks/use-reveal-modal";
@@ -17,7 +17,7 @@ type Props = {
 };
 
 export function SongReveal({ letter, onRead }: Props) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { partnerNickname } = useCouple();
   const modal = useRevealModal();
   const song = useSongPlayer(letter.spotify_preview_url, letter.spotify_track_id, modal.open);
@@ -47,11 +47,11 @@ export function SongReveal({ letter, onRead }: Props) {
         onClose={handleClose}
         header={
           <View style={[styles.seal, { backgroundColor: colors.accent }]}>
-            <Ionicons name="musical-notes" size={16} color="#FFFFFF" />
+            <Ionicons name="musical-notes" size={16} color={colors.textOnAccent} />
           </View>
         }
       >
-        <View style={[styles.content, { backgroundColor: isDark ? "#2A1520" : "#FFF8F0" }]}>
+        <View style={[styles.content, { backgroundColor: colors.paper }]}>
           <View style={styles.artworkOuter}>
             <Reanimated.View style={[styles.vinylWrap, song.vinylStyle]}>
               <Image
@@ -83,11 +83,11 @@ export function SongReveal({ letter, onRead }: Props) {
 
           {letter.spotify_external_url && (
             <TouchableOpacity
-              style={[styles.spotifyButton, { backgroundColor: "#1DB954" }]}
+              style={[styles.spotifyButton, { backgroundColor: BRAND_COLORS.SPOTIFY }]}
               onPress={() => Linking.openURL(letter.spotify_external_url!)}
               activeOpacity={0.8}
             >
-              <Text style={styles.spotifyButtonText}>Abrir en Spotify</Text>
+              <Text style={[styles.spotifyButtonText, { color: colors.textOnAccent }]}>Abrir en Spotify</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -182,7 +182,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   spotifyButtonText: {
-    color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "600",
   },
