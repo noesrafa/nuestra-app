@@ -31,7 +31,7 @@ export function useLetter(date: string) {
     setSentLetter(mine);
     setReceivedLetter(theirs);
     setLoading(false);
-  }, [date, coupleId, user]);
+  }, [date, coupleId, user?.id]);
 
   useEffect(() => {
     loadLetters();

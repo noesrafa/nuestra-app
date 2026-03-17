@@ -30,7 +30,7 @@ export default function CalendarScreen() {
   const { user } = useAuth();
   const { avatarUrl } = useProfile(user?.id);
   const { colors } = useTheme();
-  const { isComplete, avatars, refetch: refetchCouple } = useCouple();
+  const { isComplete, avatars } = useCouple();
   const {
     isActive, isPaused, isPendingDelete,
     deleteRequestedAt, refetch: refetchSpace,
@@ -119,6 +119,7 @@ export default function CalendarScreen() {
       loadTotalDays();
       loadUnreadLetters();
       loadSongArtwork();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [year, month, user?.id])
   );
 
@@ -143,10 +144,7 @@ export default function CalendarScreen() {
     loadUnreadLetters();
     loadSongArtwork();
   });
-  useRealtime(DB.TABLES.COUPLES, () => {
-    refetchCouple();
-    refetchSpace();
-  });
+  // Couples realtime is handled by CoupleProvider — no need to subscribe here
   useRealtime(DB.TABLES.SPACES, refetchSpace);
 
   function prevMonth() {

@@ -10,6 +10,7 @@ import "react-native-reanimated";
 
 import { useAuth } from "@/hooks/use-auth";
 import { ThemeProvider } from "@/contexts/theme-context";
+import { CoupleProvider } from "@/contexts/couple-context";
 import { useTheme } from "@/hooks/use-theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -42,6 +43,7 @@ export default function RootLayout() {
       hasNavigated.current = true;
       SplashScreen.hideAsync();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, loading, segments]);
 
   if (loading) {
@@ -51,14 +53,17 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <BottomSheetModalProvider>
-          <Stack screenOptions={{ headerShown: false, animation: "none" }}>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(app)" />
-            <Stack.Screen name="auth-callback" />
-          </Stack>
-          <ThemedStatusBar />
-        </BottomSheetModalProvider>
+        <CoupleProvider>
+          <BottomSheetModalProvider>
+            <Stack screenOptions={{ headerShown: false, animation: "none" }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(app)" />
+              <Stack.Screen name="auth-callback" />
+            <Stack.Screen name="spotify-callback" />
+            </Stack>
+            <ThemedStatusBar />
+          </BottomSheetModalProvider>
+        </CoupleProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

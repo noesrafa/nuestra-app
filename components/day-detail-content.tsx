@@ -34,7 +34,7 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
   const {
     entry, loading, title, hearts,
     loadEntry,
-    onTitleChange, onHeartTap, deleteEntry,
+    onHeartTap, deleteEntry,
   } = useEntryManager(date, onChanged);
   const { uploading, uploadStatus, smartPick } = usePhotoUpload();
   const { receivedLetter, sentLetter, markAsRead } = useLetter(date);

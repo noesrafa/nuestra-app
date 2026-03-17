@@ -48,6 +48,7 @@ function PulsingDay({ day, color }: { day: number; color: string }) {
       -1,
       true
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const animStyle = useAnimatedStyle(() => ({

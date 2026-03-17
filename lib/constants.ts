@@ -43,7 +43,7 @@ export const SPOTIFY = {
     "user-read-email",
   ],
   REDIRECT_URI: "nuestraapp://spotify-callback",
-  SEARCH_LIMIT: 20,
+  SEARCH_LIMIT: 10,
   AUTH_URL: "https://accounts.spotify.com/authorize",
   TOKEN_URL: "https://accounts.spotify.com/api/token",
   API_BASE: "https://api.spotify.com/v1",

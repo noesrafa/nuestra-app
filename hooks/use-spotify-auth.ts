@@ -122,7 +122,7 @@ export function useSpotifyAuth() {
     return false;
   }
 
-  async function getAccessToken(): Promise<string | null> {
+  async function getAccessToken(forceRefresh = false): Promise<string | null> {
     if (!user) return null;
 
     const { data } = await supabase
@@ -134,8 +134,8 @@ export function useSpotifyAuth() {
     if (!data) return null;
     const row = data as TokenRow;
 
-    // Return if still valid (with 60s buffer)
-    if (new Date(row.expires_at).getTime() > Date.now() + 60_000) {
+    // Return if still valid (with 60s buffer) and not forcing refresh
+    if (!forceRefresh && new Date(row.expires_at).getTime() > Date.now() + 60_000) {
       return row.access_token;
     }
 
@@ -156,6 +156,14 @@ export function useSpotifyAuth() {
     if (!res.ok) {
       const err = await res.text();
       console.warn("[SpotifyAuth] Refresh failed:", res.status, err);
+      // Only wipe tokens if refresh token is truly invalid (400/401)
+      if (res.status === 400 || res.status === 401) {
+        await supabase
+          .from(DB.TABLES.SPOTIFY_TOKENS)
+          .delete()
+          .eq("user_id", user.id);
+        setIsConnected(false);
+      }
       return null;
     }
 

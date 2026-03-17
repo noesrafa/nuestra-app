@@ -2,6 +2,7 @@ import { View, Text, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { supabase } from "@/lib/supabase";
 import { spacing, SEMANTIC_COLORS } from "@/constants/theme";
+import { DB } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { useTheme } from "@/hooks/use-theme";
@@ -19,6 +20,9 @@ export function AccountSection({ onClose }: Props) {
   async function confirmLogout() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     onClose?.();
+    if (user) {
+      await supabase.from(DB.TABLES.SPOTIFY_TOKENS).delete().eq("user_id", user.id);
+    }
     await supabase.auth.signOut();
   }
 

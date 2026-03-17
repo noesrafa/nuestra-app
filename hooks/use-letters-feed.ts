@@ -36,7 +36,7 @@ export function useLettersFeed() {
 
     setLetters(feed);
     setLoading(false);
-  }, [coupleId, user]);
+  }, [coupleId, user?.id]);
 
   useFocusEffect(
     useCallback(() => {

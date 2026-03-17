@@ -68,6 +68,7 @@ export function SongReveal({ letter, onRead }: Props) {
     } else {
       rotation.value = 0;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const vinylStyle = useAnimatedStyle(() => ({

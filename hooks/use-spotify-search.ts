@@ -33,7 +33,6 @@ export function useSpotifySearch() {
           const params = new URLSearchParams({
             q: query,
             type: "track",
-            market: "from_token",
             limit: String(SPOTIFY.SEARCH_LIMIT),
           });
 
@@ -41,9 +40,9 @@ export function useSpotifySearch() {
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          // If 401, force refresh and retry once
+          // If 401, token expired — force refresh and retry once
           if (res.status === 401) {
-            const freshToken = await getAccessToken();
+            const freshToken = await getAccessToken(true);
             if (!freshToken) {
               setSearching(false);
               return;
@@ -54,7 +53,8 @@ export function useSpotifySearch() {
           }
 
           if (!res.ok) {
-            console.warn("[SpotifySearch] Search failed:", res.status);
+            const errBody = await res.text();
+            console.warn("[SpotifySearch] Search failed:", res.status, errBody);
             setSearching(false);
             return;
           }

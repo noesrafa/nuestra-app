@@ -26,7 +26,7 @@ export default function NosotrosScreen() {
     refetch: refetchSpace,
   } = useSpace();
 
-  useRealtime(DB.TABLES.COUPLES, refetchCouple);
+  // Couples realtime is handled by CoupleProvider
   useRealtime(DB.TABLES.SPACES, refetchSpace);
 
   function handleRefresh() {
