@@ -36,6 +36,9 @@ export const Drawer = forwardRef<BottomSheet, Props>(
           ? { enableDynamicSizing: true, maxDynamicContentSize: MAX_DYNAMIC_HEIGHT }
           : { snapPoints })}
         enablePanDownToClose
+        android_keyboardInputMode="adjustResize"
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
         backdropComponent={renderBackdrop}
         backgroundStyle={[styles.bg, { backgroundColor: bgColor }]}
         handleIndicatorStyle={[styles.handle, { backgroundColor: handleColor }]}

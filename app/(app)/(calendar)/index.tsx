@@ -26,7 +26,8 @@ import { CalendarHeader } from "@/components/calendar/calendar-header";
 import { ShareDrawerContent } from "@/components/drawers/share-drawer-content";
 
 export default function CalendarScreen() {
-  const { openDate, autoReveal } = useLocalSearchParams<{ openDate?: string; autoReveal?: string }>();
+  const { openDate, autoReveal: autoRevealParam } = useLocalSearchParams<{ openDate?: string; autoReveal?: string }>();
+  const [pendingReveal, setPendingReveal] = useState<string | undefined>(undefined);
   const { user } = useAuth();
   const { avatarUrl } = useProfile(user?.id);
   const { colors } = useTheme();
@@ -68,12 +69,36 @@ export default function CalendarScreen() {
     }
   }
 
-  async function loadTotalDays() {
-    const { count } = await supabase
-      .from(DB.TABLES.ENTRIES)
-      .select("*", { count: "exact", head: true })
-      .not("photo_url", "is", null);
-    setTotalDays(count ?? 0);
+  async function loadMonthScore() {
+    const startDate = formatDate(year, month, 1);
+    const endDate = formatDate(year, month, getDaysInMonth(year, month));
+
+    const [photos, songs, hearts] = await Promise.all([
+      supabase
+        .from(DB.TABLES.ENTRIES)
+        .select("*", { count: "exact", head: true })
+        .not("photo_url", "is", null)
+        .gte("date", startDate)
+        .lte("date", endDate),
+      supabase
+        .from(DB.TABLES.LETTERS)
+        .select("*", { count: "exact", head: true })
+        .eq("type", "song")
+        .gte("date", startDate)
+        .lte("date", endDate),
+      supabase
+        .from(DB.TABLES.ENTRIES)
+        .select("hearts")
+        .gte("date", startDate)
+        .lte("date", endDate),
+    ]);
+
+    const totalHearts = (hearts.data ?? []).reduce(
+      (sum: number, e: { hearts: number }) => sum + (e.hearts ?? 0),
+      0
+    );
+
+    setTotalDays((photos.count ?? 0) + (songs.count ?? 0) + totalHearts);
   }
 
   async function loadUnreadLetters() {
@@ -118,29 +143,29 @@ export default function CalendarScreen() {
   useFocusEffect(
     useCallback(() => {
       loadEntries();
-      loadTotalDays();
+      loadMonthScore();
       loadUnreadLetters();
       loadSongArtwork();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [year, month, user?.id])
   );
 
-  // Handle deep link from letters tab
+  // Handle deep link from sorpresas tab
   useEffect(() => {
     if (!openDate) return;
     const d = new Date(openDate + "T12:00:00");
     setYear(d.getFullYear());
     setMonth(d.getMonth());
-    // Small delay to let the calendar render the right month
+    setPendingReveal(autoRevealParam);
     setTimeout(() => {
       setSelectedDate(openDate);
       dayDrawerRef.current?.expand();
     }, 300);
-  }, [openDate]);
+  }, [openDate, autoRevealParam]);
 
   useRealtime(DB.TABLES.ENTRIES, () => {
     loadEntries();
-    loadTotalDays();
+    loadMonthScore();
   });
   useRealtime(DB.TABLES.LETTERS, () => {
     loadUnreadLetters();
@@ -170,13 +195,14 @@ export default function CalendarScreen() {
       router.navigate("/(app)/(nosotros)");
       return;
     }
+    setPendingReveal(undefined);
     setSelectedDate(date);
     dayDrawerRef.current?.expand();
   }
 
   async function onRefresh() {
     setRefreshing(true);
-    await Promise.all([loadEntries(), loadTotalDays(), loadUnreadLetters(), loadSongArtwork()]);
+    await Promise.all([loadEntries(), loadMonthScore(), loadUnreadLetters(), loadSongArtwork()]);
     setRefreshing(false);
   }
 
@@ -220,7 +246,7 @@ export default function CalendarScreen() {
       </Drawer>
 
       <Drawer ref={dayDrawerRef} scrollable>
-        {selectedDate ? <DayDetailContent date={selectedDate} onChanged={onRefresh} readOnly={spaceReadOnly} autoReveal={autoReveal as "sent" | "received" | undefined} /> : null}
+        {selectedDate ? <DayDetailContent date={selectedDate} onChanged={onRefresh} readOnly={spaceReadOnly} autoReveal={pendingReveal as "sent" | "received" | undefined} /> : null}
       </Drawer>
     </SafeAreaView>
   );

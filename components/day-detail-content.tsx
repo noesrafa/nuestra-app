@@ -1,6 +1,7 @@
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -33,8 +34,8 @@ export function DayDetailContent({ date, onChanged, readOnly, autoReveal }: Prop
   const { colors, isDark } = useTheme();
   const { coupleId } = useCouple();
   const {
-    entry, loading, title, hearts,
-    loadEntry,
+    entry, loading, title, notes, hearts,
+    loadEntry, onNotesChange,
     onHeartTap, deleteEntry,
   } = useEntryManager(date, onChanged);
   const { uploading, uploadStatus, smartPick } = usePhotoUpload();
@@ -147,6 +148,16 @@ export function DayDetailContent({ date, onChanged, readOnly, autoReveal }: Prop
                 contentFit="cover"
                 transition={300}
               />
+              <TextInput
+                style={[styles.polaroidNote, { color: colors.text }]}
+                placeholder="Escribe algo..."
+                placeholderTextColor={colors.accent + "40"}
+                value={notes}
+                onChangeText={onNotesChange}
+                editable={!readOnly}
+                multiline
+                maxLength={100}
+              />
             </View>
           </Pressable>
 
@@ -243,7 +254,7 @@ const styles = StyleSheet.create({
   },
   polaroid: {
     padding: 8,
-    paddingBottom: 48,
+    paddingBottom: 4,
     borderRadius: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -253,8 +264,17 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "-3deg" }],
   },
   photo: {
-    width: 220,
-    height: 260,
+    width: 264,
+    height: 312,
+  },
+  polaroidNote: {
+    width: 264,
+    fontSize: 13,
+    fontStyle: "italic",
+    textAlign: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    minHeight: 36,
   },
   heartsRow: {
     flexDirection: "row",
@@ -309,8 +329,8 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "-3deg" }],
   },
   emptyPhotoSlot: {
-    width: 200,
-    height: 220,
+    width: 264,
+    height: 312,
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
@@ -320,7 +340,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   polaroidCaption: {
-    width: 200,
+    width: 264,
     alignItems: "center",
     paddingTop: 8,
     paddingBottom: 4,
