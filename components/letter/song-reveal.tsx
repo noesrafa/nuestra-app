@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Linking } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,13 +15,15 @@ import type { Letter } from "@/lib/types";
 type Props = {
   letter: Letter;
   onRead: () => void;
+  autoOpen?: boolean;
 };
 
-export function SongReveal({ letter, onRead }: Props) {
+export function SongReveal({ letter, onRead, autoOpen }: Props) {
   const { colors } = useTheme();
   const { partnerNickname } = useCouple();
   const modal = useRevealModal();
   const song = useSongPlayer(letter.spotify_preview_url, letter.spotify_track_id, modal.open);
+  const didAutoOpen = useRef(false);
 
   const isUnread = !letter.read_at;
   const signText = partnerNickname || "con amor";
@@ -30,6 +33,14 @@ export function SongReveal({ letter, onRead }: Props) {
     onRead();
     await song.fetchPreview();
   }
+
+  useEffect(() => {
+    if (autoOpen && !didAutoOpen.current) {
+      didAutoOpen.current = true;
+      setTimeout(handleOpen, 500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpen]);
 
   function handleClose() {
     song.pause();

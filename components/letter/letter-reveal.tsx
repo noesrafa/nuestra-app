@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { View, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/hooks/use-theme";
@@ -11,12 +12,14 @@ import type { Letter } from "@/lib/types";
 type Props = {
   letter: Letter;
   onRead: () => void;
+  autoOpen?: boolean;
 };
 
-export function LetterReveal({ letter, onRead }: Props) {
+export function LetterReveal({ letter, onRead, autoOpen }: Props) {
   const { colors } = useTheme();
   const { partnerNickname } = useCouple();
   const modal = useRevealModal();
+  const didAutoOpen = useRef(false);
 
   const isUnread = !letter.read_at;
 
@@ -24,6 +27,14 @@ export function LetterReveal({ letter, onRead }: Props) {
     modal.handleOpen();
     onRead();
   }
+
+  useEffect(() => {
+    if (autoOpen && !didAutoOpen.current) {
+      didAutoOpen.current = true;
+      setTimeout(handleOpen, 500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpen]);
 
   return (
     <>

@@ -26,7 +26,7 @@ import { CalendarHeader } from "@/components/calendar/calendar-header";
 import { ShareDrawerContent } from "@/components/drawers/share-drawer-content";
 
 export default function CalendarScreen() {
-  const { openDate } = useLocalSearchParams<{ openDate?: string }>();
+  const { openDate, autoReveal } = useLocalSearchParams<{ openDate?: string; autoReveal?: string }>();
   const { user } = useAuth();
   const { avatarUrl } = useProfile(user?.id);
   const { colors } = useTheme();
@@ -218,7 +218,7 @@ export default function CalendarScreen() {
       </Drawer>
 
       <Drawer ref={dayDrawerRef} scrollable>
-        {selectedDate ? <DayDetailContent date={selectedDate} onChanged={onRefresh} readOnly={spaceReadOnly} /> : null}
+        {selectedDate ? <DayDetailContent date={selectedDate} onChanged={onRefresh} readOnly={spaceReadOnly} autoReveal={autoReveal as "sent" | "received" | undefined} /> : null}
       </Drawer>
     </SafeAreaView>
   );

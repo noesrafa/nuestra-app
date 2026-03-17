@@ -31,7 +31,7 @@ export function ThemeSection() {
                 key={opt.key}
                 style={[
                   styles.themeButton,
-                  active && [styles.themeButtonActive, { backgroundColor: colors.surface, borderColor: colors.border }],
+                  active && [styles.themeButtonActive, { backgroundColor: colors.background, borderColor: colors.border }],
                 ]}
                 onPress={() => selectTheme(opt.key)}
                 activeOpacity={0.7}
@@ -77,13 +77,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "transparent",
   },
-  themeButtonActive: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
-  },
+  themeButtonActive: {},
   themeButtonText: {
     fontSize: 13,
     fontWeight: "600",

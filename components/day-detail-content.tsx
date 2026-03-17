@@ -26,9 +26,10 @@ type Props = {
   date: string;
   onChanged?: () => void;
   readOnly?: boolean;
+  autoReveal?: "sent" | "received";
 };
 
-export function DayDetailContent({ date, onChanged, readOnly }: Props) {
+export function DayDetailContent({ date, onChanged, readOnly, autoReveal }: Props) {
   const { colors, isDark } = useTheme();
   const { coupleId } = useCouple();
   const {
@@ -73,9 +74,9 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
         return (
           <View style={styles.actionsRow}>
             {receivedLetter.type === "song" ? (
-              <SongReveal letter={receivedLetter} onRead={markAsRead} />
+              <SongReveal letter={receivedLetter} onRead={markAsRead} autoOpen={autoReveal === "received"} />
             ) : (
-              <LetterReveal letter={receivedLetter} onRead={markAsRead} />
+              <LetterReveal letter={receivedLetter} onRead={markAsRead} autoOpen={autoReveal === "received"} />
             )}
           </View>
         );
@@ -87,9 +88,9 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
       <View style={styles.actionsRow}>
         {sentLetter ? (
           sentLetter.type === "song" ? (
-            <SentSongView letter={sentLetter} />
+            <SentSongView letter={sentLetter} autoOpen={autoReveal === "sent"} />
           ) : (
-            <SentLetterView letter={sentLetter} />
+            <SentLetterView letter={sentLetter} autoOpen={autoReveal === "sent"} />
           )
         ) : (
           <TouchableOpacity
@@ -111,9 +112,9 @@ export function DayDetailContent({ date, onChanged, readOnly }: Props) {
 
         {receivedLetter && (
           receivedLetter.type === "song" ? (
-            <SongReveal letter={receivedLetter} onRead={markAsRead} />
+            <SongReveal letter={receivedLetter} onRead={markAsRead} autoOpen={autoReveal === "received"} />
           ) : (
-            <LetterReveal letter={receivedLetter} onRead={markAsRead} />
+            <LetterReveal letter={receivedLetter} onRead={markAsRead} autoOpen={autoReveal === "received"} />
           )
         )}
       </View>

@@ -19,7 +19,7 @@ import { useCouple } from "@/hooks/use-couple";
 import { useLettersFeed, type FeedLetter } from "@/hooks/use-letters-feed";
 import { formatDisplayDate } from "@/lib/utils";
 
-type Filter = "received" | "sent";
+type Filter = "received" | "sent" | "playlist";
 
 const ROTATIONS = ["-1.5deg", "1deg", "-0.5deg", "1.5deg", "-1deg", "0.8deg"];
 
@@ -107,15 +107,16 @@ export default function LettersFeedScreen() {
 
   const received = useMemo(() => letters.filter((l) => !l.isMine), [letters]);
   const sent = useMemo(() => letters.filter((l) => l.isMine), [letters]);
+  const songs = useMemo(() => letters.filter((l) => l.type === "song"), [letters]);
   const unreadCount = useMemo(() => received.filter((l) => !l.read_at).length, [received]);
   const readReceived = useMemo(() => received.filter((l) => !!l.read_at), [received]);
-  const filtered = filter === "received" ? readReceived : sent;
+  const filtered = filter === "received" ? readReceived : filter === "sent" ? sent : songs;
 
   function handleLetterPress(letter: FeedLetter) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.navigate({
       pathname: "/(app)/(calendar)",
-      params: { openDate: letter.date },
+      params: { openDate: letter.date, autoReveal: letter.isMine ? "sent" : "received" },
     } as any);
   }
 
@@ -136,30 +137,23 @@ export default function LettersFeedScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]}>
-      <Text style={[styles.title, { color: colors.accent }]}>Cartitas</Text>
+      <Text style={[styles.title, { color: colors.accent }]}>Cositas</Text>
 
       {/* Toggle — underline style */}
       <View style={styles.toggleRow}>
-        <TouchableOpacity
-          style={styles.toggleBtn}
-          onPress={() => switchFilter("received")}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.toggleText, { color: filter === "received" ? colors.accent : colors.textSecondary }]}>
-            Recibidas
-          </Text>
-          {filter === "received" && <View style={[styles.toggleLine, { backgroundColor: colors.accent }]} />}
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.toggleBtn}
-          onPress={() => switchFilter("sent")}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.toggleText, { color: filter === "sent" ? colors.accent : colors.textSecondary }]}>
-            Enviadas
-          </Text>
-          {filter === "sent" && <View style={[styles.toggleLine, { backgroundColor: colors.accent }]} />}
-        </TouchableOpacity>
+        {(["received", "sent", "playlist"] as const).map((f) => (
+          <TouchableOpacity
+            key={f}
+            style={styles.toggleBtn}
+            onPress={() => switchFilter(f)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.toggleText, filter === f ? styles.toggleActive : styles.toggleInactive, { color: colors.accent, opacity: filter === f ? 1 : 0.4 }]}>
+              {f === "received" ? "Recibidas" : f === "sent" ? "Enviadas" : "Playlist"}
+            </Text>
+            {filter === f && <View style={[styles.toggleLine, { backgroundColor: colors.accent }]} />}
+          </TouchableOpacity>
+        ))}
       </View>
 
       {filter === "received" && unreadCount > 0 && (
@@ -167,8 +161,8 @@ export default function LettersFeedScreen() {
           <Ionicons name="gift-outline" size={15} color={colors.accent} />
           <Text style={[styles.unreadText, { color: colors.accent }]}>
             {unreadCount === 1
-              ? "Tienes 1 cartita por encontrar"
-              : `Tienes ${unreadCount} cartitas por encontrar`}
+              ? "Tienes 1 cosita por encontrar"
+              : `Tienes ${unreadCount} cositas por encontrar`}
           </Text>
         </View>
       )}
@@ -176,20 +170,22 @@ export default function LettersFeedScreen() {
       {filtered.length === 0 ? (
         <View style={styles.centered}>
           <Ionicons
-            name={filter === "received" ? "heart-outline" : "paper-plane-outline"}
+            name={filter === "received" ? "heart-outline" : filter === "sent" ? "paper-plane-outline" : "musical-notes-outline"}
             size={48}
             color={colors.accent}
             style={{ opacity: 0.2 }}
           />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             {filter === "received"
-              ? unreadCount > 0 ? "Tienes regalos en el calendario" : "Aún no te han escrito"
-              : "Aún no has escrito nada"}
+              ? unreadCount > 0 ? "Tienes regalos en el calendario" : "Aún no te han enviado nada"
+              : filter === "sent" ? "Aún no has enviado nada"
+              : "Aún no hay canciones"}
           </Text>
           <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
             {filter === "received"
-              ? unreadCount > 0 ? "Ábrelos desde el día que brilla" : "Cuando te escriban, las verás aquí"
-              : "Dale una sorpresa desde el calendario"}
+              ? unreadCount > 0 ? "Ábrelos desde el día que brilla" : "Cuando te envíen algo, lo verás aquí"
+              : filter === "sent" ? "Dale una sorpresa desde el calendario"
+              : "Las canciones que se dediquen aparecerán aquí"}
           </Text>
         </View>
       ) : (
@@ -245,7 +241,12 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: 15,
+  },
+  toggleActive: {
     fontWeight: "600",
+  },
+  toggleInactive: {
+    fontWeight: "400",
   },
   toggleLine: {
     marginTop: 4,

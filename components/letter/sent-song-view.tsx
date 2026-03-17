@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Linking } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,18 +13,28 @@ import type { Letter } from "@/lib/types";
 
 type Props = {
   letter: Letter;
+  autoOpen?: boolean;
 };
 
-export function SentSongView({ letter }: Props) {
+export function SentSongView({ letter, autoOpen }: Props) {
   const { colors } = useTheme();
   const modal = useRevealModal(Haptics.ImpactFeedbackStyle.Light);
   const song = useSongPlayer(letter.spotify_preview_url, letter.spotify_track_id, modal.open);
   const wasRead = !!letter.read_at;
+  const didAutoOpen = useRef(false);
 
   async function handleOpen() {
     modal.handleOpen();
     await song.fetchPreview();
   }
+
+  useEffect(() => {
+    if (autoOpen && !didAutoOpen.current) {
+      didAutoOpen.current = true;
+      setTimeout(handleOpen, 500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpen]);
 
   function handleClose() {
     song.pause();

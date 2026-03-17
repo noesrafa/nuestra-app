@@ -40,11 +40,11 @@ export default function AppLayout() {
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="(letters)">
           {isIOS ? (
-            <Icon sf={{ default: "envelope" as any, selected: "envelope.fill" as any }} />
+            <Icon sf={{ default: "gift" as any, selected: "gift.fill" as any }} />
           ) : (
-            <Icon src={<VectorIcon family={Ionicons} name="mail-outline" />} />
+            <Icon src={<VectorIcon family={Ionicons} name="gift-outline" />} />
           )}
-          <Label>Cartitas</Label>
+          <Label>Cositas</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="(nosotros)">
           {isIOS ? (

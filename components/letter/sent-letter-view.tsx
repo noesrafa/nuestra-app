@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -10,12 +11,22 @@ import type { Letter } from "@/lib/types";
 
 type Props = {
   letter: Letter;
+  autoOpen?: boolean;
 };
 
-export function SentLetterView({ letter }: Props) {
+export function SentLetterView({ letter, autoOpen }: Props) {
   const { colors } = useTheme();
   const modal = useRevealModal(Haptics.ImpactFeedbackStyle.Light);
   const wasRead = !!letter.read_at;
+  const didAutoOpen = useRef(false);
+
+  useEffect(() => {
+    if (autoOpen && !didAutoOpen.current) {
+      didAutoOpen.current = true;
+      setTimeout(() => modal.handleOpen(), 500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpen]);
 
   return (
     <>
