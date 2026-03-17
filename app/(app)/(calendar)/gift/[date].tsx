@@ -3,12 +3,12 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Platform,
   Alert,
 } from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
+import { useLocalSearchParams, router, Stack } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth";
@@ -42,25 +42,27 @@ export default function GiftSelectorScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Elige tu regalo
-        </Text>
-        <View style={styles.backButton} />
-      </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]} edges={["bottom"]}>
+      <Stack.Screen options={{
+        title: "",
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.accent,
+        headerLeft: () => (
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
+            <Ionicons name="chevron-back" size={22} color={colors.accent} />
+            <Text style={[styles.headerBackText, { color: colors.accent }]}>Volver</Text>
+          </TouchableOpacity>
+        ),
+      }} />
 
       <Text style={[styles.dateLabel, { color: colors.accent }]}>
         {formatDisplayDate(date)}
       </Text>
 
       <View style={styles.cardsRow}>
-        {/* Cartita */}
         <TouchableOpacity
-          style={[styles.card, { backgroundColor: colors.paper }]}
+          style={[styles.card, { backgroundColor: colors.cardBg }]}
           onPress={handleLetter}
           activeOpacity={0.8}
         >
@@ -73,9 +75,8 @@ export default function GiftSelectorScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Canción */}
         <TouchableOpacity
-          style={[styles.card, { backgroundColor: colors.paper }]}
+          style={[styles.card, { backgroundColor: colors.cardBg }]}
           onPress={handleSong}
           activeOpacity={0.8}
         >
@@ -88,7 +89,7 @@ export default function GiftSelectorScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -96,23 +97,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  headerBack: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.sm,
-    paddingTop: Platform.OS === "ios" ? 60 : spacing.md,
-    paddingBottom: spacing.sm,
+    gap: 4,
+    paddingVertical: 8,
+    paddingRight: 12,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "600",
+  headerBackText: {
+    fontSize: 16,
+    fontWeight: "500",
   },
   dateLabel: {
     fontSize: 13,
@@ -120,6 +114,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     textTransform: "capitalize",
     letterSpacing: 0.3,
+    marginTop: spacing.md,
     marginBottom: spacing.xl,
   },
   cardsRow: {

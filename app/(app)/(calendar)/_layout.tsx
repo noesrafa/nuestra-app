@@ -7,43 +7,17 @@ export default function CalendarLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: false,
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.accent,
         contentStyle: { backgroundColor: colors.surface },
       }}
     >
-      <Stack.Screen name="index" />
-      <Stack.Screen
-        name="day/[date]"
-        options={{
-          headerShown: true,
-          headerTitle: "",
-          headerBackTitle: "Volver",
-          headerTintColor: colors.text,
-          headerStyle: { backgroundColor: colors.surface },
-          headerShadowVisible: false,
-        }}
-      />
-      <Stack.Screen
-        name="letter/[date]"
-        options={{
-          headerShown: false,
-          presentation: "fullScreenModal",
-        }}
-      />
-      <Stack.Screen
-        name="gift/[date]"
-        options={{
-          headerShown: false,
-          presentation: "fullScreenModal",
-        }}
-      />
-      <Stack.Screen
-        name="song/[date]"
-        options={{
-          headerShown: false,
-          presentation: "fullScreenModal",
-        }}
-      />
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="day/[date]" options={{ headerTitle: "" }} />
+      <Stack.Screen name="gift/[date]" options={{ headerTitle: "" }} />
+      <Stack.Screen name="letter/[date]" options={{ headerTitle: "" }} />
+      <Stack.Screen name="song/[date]" options={{ headerTitle: "" }} />
     </Stack>
   );
 }

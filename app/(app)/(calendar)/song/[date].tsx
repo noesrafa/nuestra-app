@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  ScrollView,
   StyleSheet,
   Platform,
   KeyboardAvoidingView,
@@ -12,7 +13,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Image } from "expo-image";
-import { useLocalSearchParams, router } from "expo-router";
+import { useLocalSearchParams, router, Stack } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { spacing } from "@/constants/theme";
@@ -98,21 +100,31 @@ export default function SongScreen() {
 
   if (step === "dedicate" && selectedTrack) {
     return (
-      <KeyboardAvoidingView
-        style={[styles.container, { backgroundColor: colors.surface }]}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={90}
-      >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBackToSearch} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Dedicar canción</Text>
-          <View style={styles.backButton} />
-        </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]} edges={["bottom"]}>
+        <Stack.Screen options={{
+          title: "",
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: colors.surface },
+          headerTintColor: colors.accent,
+          headerLeft: () => (
+            <TouchableOpacity onPress={handleBackToSearch} style={styles.headerBack}>
+              <Ionicons name="chevron-back" size={22} color={colors.accent} />
+              <Text style={[styles.headerBackText, { color: colors.accent }]}>Buscar</Text>
+            </TouchableOpacity>
+          ),
+        }} />
 
-        <View style={styles.dedicateContent}>
-          {/* Large artwork */}
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={90}
+        >
+
+        <ScrollView
+          contentContainerStyle={styles.dedicateContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.artworkContainer}>
             <Image
               source={{ uri: selectedTrack.artworkUrl }}
@@ -129,24 +141,21 @@ export default function SongScreen() {
             {selectedTrack.artist}
           </Text>
 
-          {/* Dedication input */}
-          <View style={[styles.dedicationBox, { backgroundColor: colors.paper }]}>
+          <View style={[styles.dedicationBox, { backgroundColor: colors.background }]}>
             <TextInput
-              style={[styles.dedicationInput, { color: colors.text }]}
+              style={[styles.dedicationInput, { color: colors.accent }]}
               placeholder="Dedícale unas palabras... (opcional)"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.accent + "40"}
               multiline
               value={dedication}
               onChangeText={(t) => setDedication(t.slice(0, 280))}
               maxLength={280}
             />
-            <Text style={[styles.charCount, { color: colors.textSecondary }]}>
+            <Text style={[styles.charCount, { color: colors.accent + "60" }]}>
               {dedication.length}/280
             </Text>
           </View>
-        </View>
 
-        <View style={[styles.footer, { borderTopColor: colors.border }]}>
           <TouchableOpacity
             style={[
               styles.sendButton,
@@ -161,26 +170,31 @@ export default function SongScreen() {
               {sending ? "Enviando..." : "Enviar con amor"}
             </Text>
           </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+        </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Buscar canción</Text>
-        <View style={styles.backButton} />
-      </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]} edges={["bottom"]}>
+      <Stack.Screen options={{
+        title: "",
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.accent,
+        headerLeft: () => (
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
+            <Ionicons name="chevron-back" size={22} color={colors.accent} />
+            <Text style={[styles.headerBackText, { color: colors.accent }]}>Volver</Text>
+          </TouchableOpacity>
+        ),
+      }} />
 
       <Text style={[styles.dateLabel, { color: colors.accent }]}>
         {formatDisplayDate(date)}
       </Text>
 
-      {/* Search bar */}
       <View style={[styles.searchBar, { backgroundColor: colors.background }]}>
         <Ionicons name="search" size={18} color={colors.accent} style={{ opacity: 0.5 }} />
         <TextInput
@@ -195,7 +209,6 @@ export default function SongScreen() {
         {searching && <ActivityIndicator size="small" color={colors.accent} />}
       </View>
 
-      {/* Results */}
       <FlatList
         data={results}
         keyExtractor={(item) => item.id}
@@ -214,7 +227,7 @@ export default function SongScreen() {
           ) : null
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -222,23 +235,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  flex: {
+    flex: 1,
+  },
+  headerBack: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.sm,
-    paddingTop: Platform.OS === "ios" ? 60 : spacing.md,
-    paddingBottom: spacing.sm,
+    gap: 4,
+    paddingVertical: 8,
+    paddingRight: 12,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "600",
+  headerBackText: {
+    fontSize: 16,
+    fontWeight: "500",
   },
   dateLabel: {
     fontSize: 13,
@@ -246,6 +255,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     textTransform: "capitalize",
     letterSpacing: 0.3,
+    marginTop: spacing.sm,
     marginBottom: spacing.md,
   },
   searchBar: {
@@ -299,12 +309,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 15,
   },
-  // Dedicate step
   dedicateContent: {
-    flex: 1,
     alignItems: "center",
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+    paddingBottom: 120,
   },
   artworkContainer: {
     shadowColor: "#000",
@@ -315,9 +324,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   artworkLarge: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: 180,
+    height: 180,
+    borderRadius: 12,
   },
   selectedTrackName: {
     fontSize: 20,
@@ -332,19 +341,15 @@ const styles = StyleSheet.create({
   dedicationBox: {
     width: "100%",
     borderRadius: 12,
-    padding: spacing.md,
-    minHeight: 120,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    minHeight: 100,
   },
   dedicationInput: {
     fontSize: 16,
     lineHeight: 24,
     fontStyle: "italic",
-    minHeight: 80,
+    minHeight: 70,
     textAlignVertical: "top",
   },
   charCount: {
@@ -352,19 +357,15 @@ const styles = StyleSheet.create({
     textAlign: "right",
     marginTop: spacing.xs,
   },
-  footer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    paddingBottom: 120,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
   sendButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
     paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
     borderRadius: 25,
+    marginTop: spacing.lg,
   },
   sendText: {
     fontSize: 16,

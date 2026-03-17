@@ -10,9 +10,10 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
+import { useLocalSearchParams, router, Stack } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useLetter } from "@/hooks/use-letter";
@@ -44,70 +45,75 @@ export default function LetterScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.surface }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={90}
-    >
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Escríbele algo lindo</Text>
-        <View style={styles.backButton} />
-      </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.surface }]} edges={["bottom"]}>
+      <Stack.Screen options={{
+        title: "",
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.accent,
+        headerLeft: () => (
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
+            <Ionicons name="chevron-back" size={22} color={colors.accent} />
+            <Text style={[styles.headerBackText, { color: colors.accent }]}>Volver</Text>
+          </TouchableOpacity>
+        ),
+      }} />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={90}
       >
-        <Text style={[styles.dateLabel, { color: colors.accent }]}>
-          {formatDisplayDate(date)}
-        </Text>
-
-        <View style={[styles.paper, { backgroundColor: colors.paper }]}>
-          {/* Decorative lines */}
-          {Array.from({ length: 12 }).map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.line,
-                { top: 48 + i * 32, backgroundColor: colors.lineColor },
-              ]}
-            />
-          ))}
-
-          <TextInput
-            style={[styles.textInput, { color: colors.text }]}
-            placeholder="Dile lo que sientes..."
-            placeholderTextColor={colors.textSecondary}
-            multiline
-            autoFocus
-            value={body}
-            onChangeText={setBody}
-            textAlignVertical="top"
-          />
-        </View>
-      </ScrollView>
-
-      <View style={[styles.footer, { borderTopColor: colors.border }]}>
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            { backgroundColor: colors.accent, opacity: body.trim() && !sending ? 1 : 0.5 },
-          ]}
-          onPress={handleSend}
-          disabled={!body.trim() || sending}
-          activeOpacity={0.8}
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Ionicons name="paper-plane" size={18} color={colors.textOnAccent} />
-          <Text style={[styles.sendText, { color: colors.textOnAccent }]}>
-            {sending ? "Enviando..." : "Enviar con amor"}
+          <Text style={[styles.dateLabel, { color: colors.accent }]}>
+            {formatDisplayDate(date)}
           </Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+
+          <View style={[styles.paper, { backgroundColor: colors.paper }]}>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.line,
+                  { top: 48 + i * 32, backgroundColor: colors.lineColor },
+                ]}
+              />
+            ))}
+
+            <TextInput
+              style={[styles.textInput, { color: colors.text }]}
+              placeholder="Dile lo que sientes..."
+              placeholderTextColor={colors.accent + "40"}
+              multiline
+              autoFocus
+              value={body}
+              onChangeText={setBody}
+              textAlignVertical="top"
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              { backgroundColor: colors.accent, opacity: body.trim() && !sending ? 1 : 0.5 },
+            ]}
+            onPress={handleSend}
+            disabled={!body.trim() || sending}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="paper-plane" size={18} color={colors.textOnAccent} />
+            <Text style={[styles.sendText, { color: colors.textOnAccent }]}>
+              {sending ? "Enviando..." : "Enviar con amor"}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -115,30 +121,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  flex: {
+    flex: 1,
+  },
+  headerBack: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.sm,
-    paddingTop: Platform.OS === "ios" ? 60 : spacing.md,
-    paddingBottom: spacing.sm,
+    gap: 4,
+    paddingVertical: 8,
+    paddingRight: 12,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  scroll: {
-    flex: 1,
+  headerBackText: {
+    fontSize: 16,
+    fontWeight: "500",
   },
   scrollContent: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   dateLabel: {
     fontSize: 13,
@@ -146,17 +145,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     textTransform: "capitalize",
     letterSpacing: 0.3,
+    marginTop: spacing.sm,
     marginBottom: spacing.md,
   },
   paper: {
     borderRadius: 12,
     padding: spacing.lg,
     minHeight: 400,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
     overflow: "hidden",
   },
   line: {
@@ -172,19 +167,16 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     minHeight: 350,
   },
-  footer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    paddingBottom: 120,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
   sendButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
     paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
     borderRadius: 25,
+    marginTop: spacing.lg,
+    alignSelf: "center",
   },
   sendText: {
     fontSize: 16,
