@@ -45,7 +45,7 @@ export const palettes: Record<"rosa" | "dark", ColorPalette> = {
     accentLight: "#3D2030",
     text: "#F0E4E8",
     textSecondary: "#A07080",
-    border: "#3D2030",
+    border: "#5A3045",
     today: "#D4638A",
     hasPhoto: "#D4638A",
     gradientStart: "#D4638A",

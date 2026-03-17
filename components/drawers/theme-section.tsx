@@ -1,77 +1,43 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, Switch, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import type { ThemeOption, LayoutOption } from "@/contexts/theme-context";
-
-const THEME_OPTIONS: { key: ThemeOption; label: string; icon: string }[] = [
-  { key: "rosa", label: "Claro", icon: "sunny-outline" },
-  { key: "dark", label: "Oscuro", icon: "moon-outline" },
-];
-
-const LAYOUT_OPTIONS: { key: LayoutOption; label: string; icon: string }[] = [
-  { key: "messy", label: "Desordenado", icon: "shuffle-outline" },
-  { key: "tidy", label: "Ordenado", icon: "grid-outline" },
-];
 
 export function ThemeSection() {
-  const { theme, setTheme, layout, setLayout, colors } = useTheme();
+  const { theme, setTheme, layout, setLayout, colors, isDark } = useTheme();
 
-  function selectTheme(value: ThemeOption) {
+  function toggleDark(value: boolean) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setTheme(value);
+    setTheme(value ? "dark" : "rosa");
   }
 
-  function selectLayout(value: LayoutOption) {
+  function toggleLayout(value: boolean) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setLayout(value);
+    setLayout(value ? "messy" : "tidy");
   }
 
   return (
     <>
       <Text style={[styles.sectionTitle, { color: colors.accent }]}>APARIENCIA</Text>
       <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
-        <View style={[styles.themeRow, { backgroundColor: colors.cardBg }]}>
-          {THEME_OPTIONS.map((opt) => {
-            const active = theme === opt.key;
-            return (
-              <TouchableOpacity
-                key={opt.key}
-                style={[
-                  styles.themeButton,
-                  active && [styles.themeButtonActive, { backgroundColor: colors.background, borderColor: colors.border }],
-                ]}
-                onPress={() => selectTheme(opt.key)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name={opt.icon as keyof typeof Ionicons.glyphMap} size={15} color={colors.accent} style={{ opacity: active ? 1 : 0.5 }} />
-                <Text style={[styles.themeButtonText, { color: colors.accent, opacity: active ? 1 : 0.5 }]}>{opt.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={styles.row}>
+          <Text style={[styles.label, { color: colors.accent }]}>Tema oscuro</Text>
+          <Switch
+            value={isDark}
+            onValueChange={toggleDark}
+            trackColor={{ false: colors.border, true: colors.accent }}
+            thumbColor="#fff"
+          />
         </View>
-      </View>
-      <View style={{ height: spacing.sm }} />
-      <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
-        <View style={[styles.themeRow, { backgroundColor: colors.cardBg }]}>
-          {LAYOUT_OPTIONS.map((opt) => {
-            const active = layout === opt.key;
-            return (
-              <TouchableOpacity
-                key={opt.key}
-                style={[
-                  styles.themeButton,
-                  active && [styles.themeButtonActive, { backgroundColor: colors.background, borderColor: colors.border }],
-                ]}
-                onPress={() => selectLayout(opt.key)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name={opt.icon as keyof typeof Ionicons.glyphMap} size={15} color={colors.accent} style={{ opacity: active ? 1 : 0.5 }} />
-                <Text style={[styles.themeButtonText, { color: colors.accent, opacity: active ? 1 : 0.5 }]}>{opt.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={styles.row}>
+          <Text style={[styles.label, { color: colors.accent }]}>Desordenado</Text>
+          <Switch
+            value={layout === "messy"}
+            onValueChange={toggleLayout}
+            trackColor={{ false: colors.border, true: colors.accent }}
+            thumbColor="#fff"
+          />
         </View>
       </View>
     </>
@@ -92,25 +58,20 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
   },
-  themeRow: {
-    flexDirection: "row",
-    borderRadius: 12,
-    padding: 3,
-  },
-  themeButton: {
-    flex: 1,
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-    paddingVertical: 8,
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: "transparent",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    minHeight: 48,
   },
-  themeButtonActive: {},
-  themeButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
+  label: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 16,
   },
 });

@@ -65,6 +65,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     gap: 6,
     marginTop: spacing.lg,
+    marginBottom: 100,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
   },
